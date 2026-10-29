@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cityland Mall Tenant Portal</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Source+Sans+3:wght@400;600;700&family=Noto+Sans+Arabic:wght@400;600;700&display=swap">
+<style>
+:root{
+  --navy:#141b2d; --bg:#f6f7fb; --card:#fff; --ink:#151b2e; --muted:#59607a; --line:#d5dae8;
+  --accent:#c2286f; --accent-ink:#fff; --ok:#0b6b5f; --ok-bg:#e3f4f1; --err:#a3171f; --err-bg:#fde9ea; --warn-bg:#fbeedd; --warn:#8a5200;
+  --display:"Bricolage Grotesque","Noto Sans Arabic","Segoe UI",system-ui,sans-serif; --body:"Source Sans 3","Noto Sans Arabic","Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 var(--body)}
+header{background:var(--navy);color:#fff;padding:20px max(16px,env(safe-area-inset-right)) 26px max(16px,env(safe-area-inset-left))}
+.in{max-width:760px;margin:0 auto}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.logo{background:#fff;border-radius:999px;padding:7px 16px;display:inline-flex}
+.logo img{height:32px;display:block}
+.lang{font:600 15px var(--body);background:transparent;color:#fff;border:1px solid #6d7794;border-radius:999px;padding:6px 14px;cursor:pointer}
+h1{font:700 clamp(26px,5vw,36px)/1.2 var(--display);margin:18px 0 8px;text-wrap:balance}
+header p{margin:0;color:#d3d8e8;max-width:60ch}
+nav{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:0 max(16px,env(safe-area-inset-right)) 0 max(16px,env(safe-area-inset-left))}
+nav .in{display:flex;gap:4px}
+nav button{flex:1;font:600 16px var(--body);background:none;border:0;border-bottom:3px solid transparent;padding:14px 6px;color:var(--muted);cursor:pointer}
+nav button[aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{padding:20px max(16px,env(safe-area-inset-right)) 56px max(16px,env(safe-area-inset-left))}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;background:#e6e9f3;border-radius:10px;padding:4px;margin:0 0 18px}
+.seg button{font:600 15px var(--body);border:0;background:transparent;color:var(--muted);padding:11px 8px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(20,27,45,.15)}
+.lead{color:var(--muted);margin:-6px 0 16px}
+fieldset{border:1px solid var(--line);background:var(--card);border-radius:8px;margin:0 0 16px;padding:16px 16px 4px;min-width:0}
+legend{font:700 18px var(--display);padding:0 6px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}
+@media (max-width:600px){.row{grid-template-columns:1fr}}
+.f{margin:0 0 14px;min-width:0}
+label,.lbl{display:block;font-weight:600;font-size:15px;margin-bottom:4px}
+.req::after{content:" *";color:var(--accent)}
+.hint{color:var(--muted);font-size:14px;margin:3px 0 0}
+input[type=text],input[type=email],input[type=tel],input[type=url],input[type=date],select,textarea{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink)}
+input:user-invalid,select:user-invalid,textarea:user-invalid{border-color:var(--err)}
+textarea{min-height:92px;resize:vertical}
+.checks{display:flex;flex-wrap:wrap;gap:8px 18px}
+.checks label,.consent{font-weight:400;display:flex;gap:10px;align-items:center;margin:0}
+.consent{align-items:flex-start;font-size:16px}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--accent);flex:none;margin-top:2px}
+.drop{border:2px dashed var(--line);border-radius:8px;padding:14px;background:#fbfcfe}
+.drop.big{padding:22px 14px;text-align:center}
+.files{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:6px;text-align:start}
+.files li{display:flex;align-items:center;gap:10px;font-size:14px;background:var(--bg);border-radius:6px;padding:6px 10px;min-width:0}
+.files img{width:36px;height:36px;object-fit:cover;border-radius:4px;flex:none}
+.files span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:start}
+.files button{border:0;background:none;color:var(--err);font-weight:700;cursor:pointer;font-size:18px}
+.hp{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);opacity:0;pointer-events:none}
+.submit{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.btn{font:700 17px var(--body);background:var(--accent);color:var(--accent-ink);border:0;border-radius:6px;padding:13px 28px;cursor:pointer}
+.btn:disabled{opacity:.6;cursor:wait}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent);padding:9px 18px;font-size:15px}
+.msg{border-radius:6px;padding:12px 14px;margin:0 0 16px}
+.msg.err{background:var(--err-bg);color:var(--err)}
+.done{background:var(--card);border:1px solid var(--line);border-inline-start:5px solid var(--ok);border-radius:8px;padding:22px}
+.done h2{font:700 24px var(--display);margin:0 0 8px}
+.ref{font:600 20px ui-monospace,Menlo,monospace;background:var(--ok-bg);color:var(--ok);display:inline-block;padding:4px 10px;border-radius:6px;direction:ltr;margin-inline-end:8px}
+.chip{display:inline-block;font-weight:700;padding:4px 12px;border-radius:999px;background:var(--warn-bg);color:var(--warn)}
+.chip.good{background:var(--ok-bg);color:var(--ok)}
+.chip.bad{background:var(--err-bg);color:var(--err)}
+.note{background:var(--bg);border-radius:6px;padding:10px 12px;margin-top:10px}
+.preview{margin:4px 0 16px}
+.pcard{border-radius:12px;padding:18px 18px 16px;color:#fff;background:linear-gradient(145deg,#141b2d 0%,#2b3558 100%);position:relative;overflow:hidden;min-height:150px}
+.pcard::after{content:"";position:absolute;inset-inline-end:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,#c2286f 0%,rgba(194,40,111,0) 70%);opacity:.7}
+.ptag{display:inline-block;font:700 12px var(--body);letter-spacing:.08em;text-transform:uppercase;background:var(--accent);color:#fff;border-radius:4px;padding:3px 8px}
+.pbrand{margin-top:10px;font:600 14px var(--body);color:#c9cfe3}
+.ptitle{margin-top:2px;font:700 22px/1.2 var(--display);text-wrap:balance;position:relative;z-index:1}
+.poff{margin-top:8px;font:700 18px var(--display);color:#ffd36b}
+.pdate{margin-top:8px;font-size:14px;color:#c9cfe3}
+[hidden]{display:none!important}
+footer{max-width:760px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-left)) 40px;color:var(--muted);font-size:14px}
+</style>
+</head>
+<body>
+<header><div class="in">
+  <div class="top"><span class="logo"><img src="data:image/png;base64,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" alt="Cityland Mall"></span>
+  <button type="button" class="lang" id="lang" aria-label="Language">العربية</button></div>
+  <h1 data-i18n="h_title">Tenant portal</h1>
+  <p data-i18n="h_sub">Tell us about your store and share your offers, sales and events. Our marketing team will feature them on the mall website and social media. No login needed.</p>
+</div></header>
+
+<nav aria-label="Portal sections"><div class="in" role="tablist">
+  <button role="tab" id="tab-profile" aria-controls="p-profile" aria-selected="true" data-i18n="t_store">1 · Your store</button>
+  <button role="tab" id="tab-promo" aria-controls="p-promo" aria-selected="false" data-i18n="t_promo">2 · Offers &amp; events</button>
+  <button role="tab" id="tab-track" aria-controls="p-track" aria-selected="false" data-i18n="t_track">3 · Track</button>
+</div></nav>
+
+<main><div class="in">
+
+<!-- ================= PROFILE ================= -->
+<section id="p-profile" role="tabpanel" aria-labelledby="tab-profile">
+  <form id="f-profile" data-form="profile" data-mode="quick" novalidate>
+    <div class="seg" role="group" aria-label="Mode">
+      <button type="button" data-setmode="quick" data-i18n="m_quick_store">Send my profile document (fastest)</button>
+      <button type="button" data-setmode="full" data-i18n="m_full">Fill in the details</button>
+    </div>
+    <div class="msg err" role="alert" hidden></div>
+
+    <fieldset><legend data-i18n="l_store">Your store</legend>
+      <div class="row">
+        <div class="f"><label class="req" for="pr-unit" data-i18n="f_unit">Unit / shop number</label><input id="pr-unit" name="unit" type="text" autocomplete="off" required data-i18n-ph="ph_unit" placeholder="e.g. Shop 245"></div>
+        <div class="f"><label class="req" for="pr-brand" data-i18n="f_brand">Brand name (as customers know it)</label><input id="pr-brand" name="brand" type="text" required></div>
+      </div>
+    </fieldset>
+
+    <fieldset data-m="quick"><legend data-i18n="l_attach_profile">Attach your company profile</legend>
+      <div class="f">
+        <div class="drop big"><input type="file" id="pq-doc" data-bucket="documents" data-types="doc" multiple aria-label="Company profile" accept="image/png,image/jpeg,image/webp,image/svg+xml,application/pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"><ul class="files" data-list="documents"></ul></div>
+        <p class="hint" data-i18n="h_attach_profile">A brand deck, company profile, logo or any document that tells us who you are. PDF, Word, PowerPoint, Excel or images. We will take it from there.</p>
+      </div>
+    </fieldset>
+
+    <fieldset data-m="full"><legend data-i18n="l_about">About the store</legend>
+      <div class="row">
+        <div class="f"><label for="pr-legal" data-i18n="f_legal">Registered company name</label><input id="pr-legal" name="legalName" type="text"></div>
+        <div class="f"><label for="pr-cat" data-i18n="f_cat">Category</label>
+          <select id="pr-cat" name="category"><option value="" data-i18n="o_choose">Choose…</option><option value="Fashion &amp; accessories" data-i18n="c1">Fashion &amp; accessories</option><option value="Food &amp; beverage" data-i18n="c2">Food &amp; beverage</option><option value="Supermarket &amp; grocery" data-i18n="c3">Supermarket &amp; grocery</option><option value="Health &amp; beauty" data-i18n="c4">Health &amp; beauty</option><option value="Electronics &amp; mobile" data-i18n="c5">Electronics &amp; mobile</option><option value="Home &amp; lifestyle" data-i18n="c6">Home &amp; lifestyle</option><option value="Kids &amp; entertainment" data-i18n="c7">Kids &amp; entertainment</option><option value="Services &amp; banking" data-i18n="c8">Services &amp; banking</option><option value="Kiosk / specialty" data-i18n="c9">Kiosk / specialty</option><option value="Other" data-i18n="c10">Other</option></select></div>
+      </div>
+      <div class="f"><label for="pr-desc" data-i18n="f_about">About your store</label><textarea id="pr-desc" name="description" maxlength="1200" data-i18n-ph="ph_about" placeholder="Two or three sentences customers would like to know: what you sell, what makes you different."></textarea></div>
+      <div class="f"><label for="pr-hours" data-i18n="f_hours">Opening hours</label><input id="pr-hours" name="hours" type="text" data-i18n-ph="ph_hours" placeholder="e.g. Daily 10:00 to 24:00"></div>
+    </fieldset>
+
+    <fieldset data-m="full"><legend data-i18n="l_online">Online</legend>
+      <div class="row">
+        <div class="f"><label for="pr-web" data-i18n="f_web">Website</label><input id="pr-web" name="website" type="url" dir="ltr" placeholder="https://"></div>
+        <div class="f"><label for="pr-ig">Instagram</label><input id="pr-ig" name="instagram" type="text" dir="ltr" placeholder="@yourbrand"></div>
+        <div class="f"><label for="pr-tt">TikTok</label><input id="pr-tt" name="tiktok" type="text" dir="ltr" placeholder="@yourbrand"></div>
+        <div class="f"><label for="pr-fb">Facebook</label><input id="pr-fb" name="facebook" type="text" dir="ltr"></div>
+        <div class="f"><label for="pr-sc">Snapchat</label><input id="pr-sc" name="snapchat" type="text" dir="ltr"></div>
+        <div class="f"><label for="pr-wa" data-i18n="f_wa">WhatsApp for customers</label><input id="pr-wa" name="whatsapp" type="tel" dir="ltr" placeholder="+971 …"></div>
+      </div>
+    </fieldset>
+
+    <fieldset><legend data-i18n="l_contact">Who should we contact?</legend>
+      <div class="row">
+        <div class="f"><label class="req" for="pr-cn" data-i18n="f_cname">Name</label><input id="pr-cn" name="contactName" type="text" autocomplete="name" required></div>
+        <div class="f"><label class="req" for="pr-ce" data-i18n="f_email">Email</label><input id="pr-ce" name="contactEmail" type="email" dir="ltr" autocomplete="email" required><p class="hint" data-i18n="h_email">We send your confirmation here.</p></div>
+        <div class="f"><label for="pr-cm" data-i18n="f_mobile">Mobile</label><input id="pr-cm" name="contactMobile" type="tel" dir="ltr" autocomplete="tel" placeholder="+971 …"></div>
+        <div class="f" data-m="full"><label for="pr-cr" data-i18n="f_role">Role</label><input id="pr-cr" name="contactRole" type="text" data-i18n-ph="ph_role" placeholder="Store manager, owner…"></div>
+      </div>
+      <div class="row" data-m="full">
+        <div class="f"><label for="pr-mn" data-i18n="f_mkt_name">Marketing contact (if different)</label><input id="pr-mn" name="marketingName" type="text"></div>
+        <div class="f"><label for="pr-me" data-i18n="f_mkt_email">Marketing email</label><input id="pr-me" name="marketingEmail" type="email" dir="ltr"></div>
+        <div class="f"><label for="pr-mm" data-i18n="f_mkt_mobile">Marketing mobile</label><input id="pr-mm" name="marketingMobile" type="tel" dir="ltr"></div>
+      </div>
+    </fieldset>
+
+    <fieldset data-m="full"><legend data-i18n="l_logo">Logo and pictures</legend>
+      <div class="f"><span class="lbl" data-i18n="f_logo">Logo</span>
+        <div class="drop"><input type="file" id="pr-logo" data-bucket="logos" data-types="img" multiple aria-label="Logo" accept="image/png,image/jpeg,image/webp,image/svg+xml,application/pdf"><ul class="files" data-list="logos"></ul></div>
+        <p class="hint" data-i18n="h_logo">PNG with a transparent background or SVG is best.</p></div>
+      <div class="f"><span class="lbl" data-i18n="f_pics">Store or product pictures</span>
+        <div class="drop"><input type="file" id="pr-img" data-bucket="images" data-types="img" multiple aria-label="Pictures" accept="image/png,image/jpeg,image/webp"><ul class="files" data-list="images"></ul></div>
+        <p class="hint" data-i18n="h_pics">Photos of your store front or best sellers. Big photos are shrunk automatically.</p></div>
+    </fieldset>
+
+    <fieldset><div class="f"><label class="consent"><input type="checkbox" name="consent" required>
+      <span><span data-i18n="c_consent_p">I am authorised to act for this store. I allow Cityland Mall to store these details and to use the logo, pictures and text on its website and social media. I will tell the mall if my details change.</span> <b style="color:var(--accent)">*</b></span></label></div></fieldset>
+
+    <p class="hp" aria-hidden="true"><label>Leave empty <input type="text" name="hp" tabindex="-1" autocomplete="off"></label></p>
+    <div class="cf-turnstile"></div>
+    <div class="submit"><button class="btn" type="submit" data-i18n="b_send_store">Send my store details</button><span class="hint" data-i18n="h_submit_store">You can send it again later to update.</span></div>
+  </form>
+  <div class="done" hidden></div>
+</section>
+
+<!-- ================= PROMOTIONS ================= -->
+<section id="p-promo" role="tabpanel" aria-labelledby="tab-promo" hidden>
+  <form id="f-promo" data-form="promotion" data-mode="quick" novalidate>
+    <div class="seg" role="group" aria-label="Mode">
+      <button type="button" data-setmode="quick" data-i18n="m_quick_promo">Send my brief (fastest)</button>
+      <button type="button" data-setmode="full" data-i18n="m_full">Fill in the details</button>
+    </div>
+    <div class="msg err" role="alert" hidden></div>
+
+    <fieldset><legend data-i18n="l_what">What are you sharing?</legend>
+      <div class="row">
+        <div class="f"><label class="req" for="pm-type" data-i18n="f_type">Type</label>
+          <select id="pm-type" name="type" required><option value="" data-i18n="o_choose">Choose…</option><option value="Offer" data-i18n="ty1">Offer</option><option value="Sale" data-i18n="ty2">Sale</option><option value="Event / activity" data-i18n="ty3">Event / activity</option><option value="New arrival / opening" data-i18n="ty4">New arrival / opening</option><option value="Collaboration / giveaway" data-i18n="ty5">Collaboration / giveaway</option></select></div>
+        <div class="f"><label class="req" for="pm-unit" data-i18n="f_unit">Unit / shop number</label><input id="pm-unit" name="unit" type="text" required autocomplete="off" data-i18n-ph="ph_unit" placeholder="e.g. Shop 245"></div>
+        <div class="f"><label class="req" for="pm-brand" data-i18n="f_brand_s">Brand name</label><input id="pm-brand" name="brand" type="text" required></div>
+      </div>
+    </fieldset>
+
+    <fieldset data-m="quick"><legend data-i18n="l_attach_brief">Attach your brief</legend>
+      <div class="f">
+        <div class="drop big"><input type="file" id="pq-brief" data-bucket="brief" data-types="doc" multiple aria-label="Brief" accept="image/png,image/jpeg,image/webp,application/pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx"><ul class="files" data-list="brief"></ul></div>
+        <p class="hint" data-i18n="h_brief">Your poster, offer sheet, event plan or any document. PDF, Word, PowerPoint, Excel or images. That is enough, we will contact you if we need more.</p>
+      </div>
+      <div class="f"><label for="pq-note" data-i18n="f_note">Anything we should know? (optional)</label><textarea id="pq-note" name="note" maxlength="1500" style="min-height:70px"></textarea></div>
+      <div class="row">
+        <div class="f"><label for="pq-start" data-i18n="f_start_o">Starts (optional)</label><input id="pq-start" name="startDate" type="date"></div>
+        <div class="f"><label for="pq-end" data-i18n="f_end_o">Ends (optional)</label><input id="pq-end" name="endDate" type="date"></div>
+      </div>
+    </fieldset>
+
+    <fieldset data-m="full"><legend data-i18n="l_details">The details</legend>
+      <div class="f"><label class="req" for="pm-title" data-i18n="f_title">Headline</label><input id="pm-title" name="title" type="text" maxlength="140" required data-i18n-ph="ph_title" placeholder="e.g. Buy 1 Get 1 Free on all abayas"></div>
+      <div class="f"><label class="req" for="pm-desc" data-i18n="f_details">Details</label><textarea id="pm-desc" name="description" maxlength="1500" required data-i18n-ph="ph_details" placeholder="What is it, who is it for, how do customers get it?"></textarea></div>
+      <div class="row">
+        <div class="f"><label for="pm-off" data-i18n="f_off">Discount or price</label><input id="pm-off" name="offerDetails" type="text" data-i18n-ph="ph_off" placeholder="e.g. 30% off, AED 99"></div>
+        <div class="f"><label for="pm-link" data-i18n="f_link">Link (website, booking or product page)</label><input id="pm-link" name="link" type="url" dir="ltr" placeholder="https://"></div>
+        <div class="f"><label class="req" for="pm-start" data-i18n="f_start">Starts</label><input id="pm-start" name="startDate" type="date" required></div>
+        <div class="f"><label for="pm-end" data-i18n="f_end">Ends</label><input id="pm-end" name="endDate" type="date"><p class="hint" data-i18n="h_end">Leave empty for a one-day event.</p></div>
+      </div>
+      <div class="preview" aria-live="polite"><span class="lbl" data-i18n="pv_h">How it could look on our channels</span>
+        <div class="pcard"><span class="ptag" id="pv-type">Offer</span><div class="pbrand" id="pv-brand">Your brand</div><div class="ptitle" id="pv-title">Your headline appears here</div><div class="poff" id="pv-off"></div><div class="pdate" id="pv-date"></div></div>
+        <p class="hint" data-i18n="pv_note">A preview only. Our team designs the final post.</p></div>
+      <div class="f"><label for="pm-terms" data-i18n="f_terms">Terms and conditions</label><textarea id="pm-terms" name="terms" maxlength="800" style="min-height:64px" data-i18n-ph="ph_terms" placeholder="e.g. While stocks last. Not valid with other offers."></textarea></div>
+    </fieldset>
+
+    <fieldset data-m="full"><legend data-i18n="l_where">Where would you like it featured?</legend>
+      <div class="f"><div class="checks" role="group" aria-label="Channels">
+        <label><input type="checkbox" name="channels" value="Website"> <span data-i18n="ch1">Mall website</span></label>
+        <label><input type="checkbox" name="channels" value="Instagram"> Instagram</label>
+        <label><input type="checkbox" name="channels" value="TikTok"> TikTok</label>
+        <label><input type="checkbox" name="channels" value="Facebook"> Facebook</label>
+      </div><p class="hint" data-i18n="h_where">Our team decides what fits each channel. Please send at least 3 working days before the start date.</p></div>
+      <div class="f"><span class="lbl" data-i18n="f_art">Artwork or pictures</span>
+        <div class="drop"><input type="file" id="pm-art" data-bucket="artwork" data-types="doc" multiple aria-label="Artwork" accept="image/png,image/jpeg,image/webp,application/pdf"><ul class="files" data-list="artwork"></ul></div>
+        <p class="hint" data-i18n="h_art">Posters, product photos or a logo. Big photos are shrunk automatically.</p></div>
+    </fieldset>
+
+    <fieldset><legend data-i18n="l_contact">Who should we contact?</legend>
+      <div class="row">
+        <div class="f"><label class="req" for="pm-cn" data-i18n="f_cname">Name</label><input id="pm-cn" name="contactName" type="text" autocomplete="name" required></div>
+        <div class="f"><label class="req" for="pm-ce" data-i18n="f_email">Email</label><input id="pm-ce" name="contactEmail" type="email" dir="ltr" autocomplete="email" required><p class="hint" data-i18n="h_email2">We send your confirmation and updates here.</p></div>
+        <div class="f"><label for="pm-cm" data-i18n="f_mobile">Mobile</label><input id="pm-cm" name="contactMobile" type="tel" dir="ltr" autocomplete="tel"></div>
+      </div>
+      <div class="f"><label class="consent"><input type="checkbox" name="consent" required>
+        <span><span data-i18n="c_consent_o">I am authorised to act for this store and the information is accurate. I allow Cityland Mall to edit and use this text and artwork on its website and social media.</span> <b style="color:var(--accent)">*</b></span></label></div>
+    </fieldset>
+
+    <p class="hp" aria-hidden="true"><label>Leave empty <input type="text" name="hp" tabindex="-1" autocomplete="off"></label></p>
+    <div class="cf-turnstile"></div>
+    <div class="submit"><button class="btn" type="submit" data-i18n="b_send_promo">Send to the marketing team</button><span class="hint" data-i18n="h_submit_promo">We review everything before it goes live.</span></div>
+  </form>
+  <div class="done" hidden></div>
+</section>
+
+<!-- ================= TRACK ================= -->
+<section id="p-track" role="tabpanel" aria-labelledby="tab-track" hidden>
+  <p class="lead" data-i18n="tr_lead">Enter the reference from your confirmation email and the email address you used.</p>
+  <form id="f-track" novalidate>
+    <div class="msg err" role="alert" hidden></div>
+    <fieldset>
+      <div class="row">
+        <div class="f"><label class="req" for="tr-ref" data-i18n="tr_ref">Reference</label><input id="tr-ref" type="text" dir="ltr" autocomplete="off" placeholder="CL-S-261029-AB12" required></div>
+        <div class="f"><label class="req" for="tr-email" data-i18n="f_email">Email</label><input id="tr-email" type="email" dir="ltr" autocomplete="email" required></div>
+      </div>
+    </fieldset>
+    <div class="submit"><button class="btn" type="submit" data-i18n="b_check">Check status</button></div>
+  </form>
+  <div class="done" id="tr-out" hidden style="margin-top:16px"></div>
+</section>
+</div></main>
+
+<footer><div data-i18n="foot">We use the details on this page only to run Cityland Mall's tenant communication and marketing. To correct or remove your details, reply to any confirmation email.</div></footer>
+
+<script>
+/* ---- Set these two values after setup (see SETUP.md) ---- */
+var ENDPOINT = "";            // Apps Script web app URL ending in /exec
+var TURNSTILE_SITEKEY = "";   // optional: Cloudflare Turnstile site key
+/* --------------------------------------------------------- */
+
+var MAX_FILE = 5 * 1024 * 1024, MAX_RAW = 25 * 1024 * 1024, MAX_TOTAL = 12 * 1024 * 1024, MAX_FILES = 8;
+var EXT = { pdf:"application/pdf", doc:"application/msword", docx:"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ppt:"application/vnd.ms-powerpoint", pptx:"application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  xls:"application/vnd.ms-excel", xlsx:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  png:"image/png", jpg:"image/jpeg", jpeg:"image/jpeg", webp:"image/webp", svg:"image/svg+xml" };
+var IMG_ONLY = ["image/png","image/jpeg","image/webp","image/svg+xml"];
+var started = Date.now();
+var store = {};   // formId -> bucket -> [{name,type,size,blob}]
+
+function $(s, r){ return (r || document).querySelector(s); }
+function $$(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+function uuid(){ return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2); }
+function lsGet(k){ try { return JSON.parse(localStorage.getItem(k) || "null"); } catch (e) { return null; } }
+function lsSet(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+function lsDel(k){ try { localStorage.removeItem(k); } catch (e) {} }
+
+/* ---------------- language ---------------- */
+var EN = {}, LANG = "en";
+var MSG = {
+  en: { sending:"Sending…", notready:"This portal is not connected yet. Please contact the marketing team.",
+    failed:"We could not send this. Please check your connection and try again.",
+    e_type:"{n} is not an image, PDF, Word, PowerPoint or Excel file.", e_big:"{n} is over 5 MB.", e_max:"Maximum 8 files.", e_total:"Files are over 12 MB in total.",
+    need_brief:"Please attach your brief or write a short note.", need_doc:"Please attach your company profile or logo.",
+    done_h:"Thank you, we received it", done_p:"A confirmation email is on its way to {e}. Please also check your spam folder. Your reference is:",
+    done_store_q:"Fast and done. Now share an offer or event on the next tab.", done_store_f:"Next, share an offer or event on the next tab.", done_promo:"We will email you when it is approved. You can also check progress on the Track tab.",
+    copy:"Copy", copied:"Copied", another:"Send another", checking:"Checking…",
+    st_New:"Received, waiting for review", st_Approved:"Approved", st_Published:"Live on our channels", "st_Needs changes":"We need a change from you", st_Rejected:"Not used this time", st_Received:"Received", st_Reviewed:"Reviewed and added",
+    tr_sent:"Sent on {d}", tr_note:"From the team:", tr_err:"We could not check right now. Please try again." },
+  ar: { sending:"جارٍ الإرسال…", notready:"البوابة غير متصلة بعد. يرجى التواصل مع فريق التسويق.",
+    failed:"تعذّر الإرسال. يرجى التحقق من الاتصال والمحاولة مرة أخرى.",
+    e_type:"الملف {n} ليس صورة أو PDF أو Word أو PowerPoint أو Excel.", e_big:"الملف {n} أكبر من 5 ميغابايت.", e_max:"الحد الأقصى 8 ملفات.", e_total:"حجم الملفات يتجاوز 12 ميغابايت.",
+    need_brief:"يرجى إرفاق الملخّص أو كتابة ملاحظة قصيرة.", need_doc:"يرجى إرفاق ملف تعريف الشركة أو الشعار.",
+    done_h:"شكرًا لك، استلمنا طلبك", done_p:"أُرسلت رسالة تأكيد إلى {e}. يرجى التحقق أيضًا من مجلد الرسائل غير المرغوب فيها. رقمك المرجعي:",
+    done_store_q:"تم بسرعة. شاركنا الآن عرضًا أو فعالية في التبويب التالي.", done_store_f:"بعد ذلك، شاركنا عرضًا أو فعالية في التبويب التالي.", done_promo:"سنراسلك عند الموافقة. يمكنك أيضًا متابعة الطلب من تبويب التتبّع.",
+    copy:"نسخ", copied:"تم النسخ", another:"إرسال طلب آخر", checking:"جارٍ التحقق…",
+    st_New:"تم الاستلام، بانتظار المراجعة", st_Approved:"تمت الموافقة", st_Published:"منشور على قنواتنا", "st_Needs changes":"نحتاج منك تعديلًا", st_Rejected:"لن نستخدمه هذه المرة", st_Received:"تم الاستلام", st_Reviewed:"تمت المراجعة والإضافة",
+    tr_sent:"أُرسل بتاريخ {d}", tr_note:"من الفريق:", tr_err:"تعذّر التحقق الآن. يرجى المحاولة مرة أخرى." }
+};
+var AR = {
+  h_title:"بوابة المستأجرين", h_sub:"عرّفنا بمتجرك وشاركنا عروضك وتخفيضاتك وفعالياتك. سيعرضها فريق التسويق على موقع المول ووسائل التواصل الاجتماعي. لا حاجة لتسجيل الدخول.",
+  t_store:"١ · متجرك", t_promo:"٢ · العروض والفعاليات", t_track:"٣ · تتبّع الطلب",
+  m_quick_store:"إرسال ملف التعريف (الأسرع)", m_quick_promo:"إرسال الملخّص (الأسرع)", m_full:"تعبئة التفاصيل",
+  l_store:"متجرك", f_unit:"رقم الوحدة / المحل", ph_unit:"مثال: Shop 245", f_brand:"اسم العلامة التجارية (كما يعرفها العملاء)", f_brand_s:"اسم العلامة التجارية",
+  l_attach_profile:"أرفق ملف تعريف الشركة", h_attach_profile:"عرض العلامة التجارية أو ملف تعريف الشركة أو الشعار أو أي مستند يعرّفنا بكم. PDF أو Word أو PowerPoint أو Excel أو صور. وسنتولى الباقي.",
+  l_about:"عن المتجر", f_legal:"اسم الشركة المسجّل", f_cat:"التصنيف", o_choose:"اختر…",
+  c1:"أزياء وإكسسوارات", c2:"مطاعم ومشروبات", c3:"سوبرماركت وبقالة", c4:"صحة وجمال", c5:"إلكترونيات وهواتف", c6:"منزل ونمط حياة", c7:"أطفال وترفيه", c8:"خدمات ومصارف", c9:"كشك / متخصص", c10:"أخرى",
+  f_about:"نبذة عن متجرك", ph_about:"جملتان أو ثلاث يود العملاء معرفتها: ماذا تبيعون وما الذي يميزكم.", f_hours:"ساعات العمل", ph_hours:"مثال: يوميًا من 10:00 إلى 24:00",
+  l_online:"على الإنترنت", f_web:"الموقع الإلكتروني", f_wa:"واتساب للعملاء",
+  l_contact:"مع من نتواصل؟", f_cname:"الاسم", f_email:"البريد الإلكتروني", h_email:"سنرسل التأكيد إلى هذا البريد.", h_email2:"سنرسل التأكيد والتحديثات إلى هذا البريد.", f_mobile:"الجوال", f_role:"المنصب", ph_role:"مدير المتجر، المالك…",
+  f_mkt_name:"مسؤول التسويق (إن كان مختلفًا)", f_mkt_email:"بريد التسويق", f_mkt_mobile:"جوال التسويق",
+  l_logo:"الشعار والصور", f_logo:"الشعار", h_logo:"الأفضل PNG بخلفية شفافة أو SVG.", f_pics:"صور المتجر أو المنتجات", h_pics:"صور واجهة المتجر أو الأكثر مبيعًا. تُصغَّر الصور الكبيرة تلقائيًا.",
+  c_consent_p:"أنا مفوَّض بالتصرف نيابةً عن هذا المتجر. أسمح لمول سيتي لاند بحفظ هذه البيانات واستخدام الشعار والصور والنصوص على موقعه ووسائل التواصل الاجتماعي. وسأبلغ المول بأي تغيير في بياناتي.",
+  b_send_store:"إرسال بيانات متجري", h_submit_store:"يمكنك إرسالها مجددًا لاحقًا للتحديث.",
+  l_what:"ماذا تود أن تشاركنا؟", f_type:"النوع", ty1:"عرض", ty2:"تخفيضات", ty3:"فعالية / نشاط", ty4:"منتج جديد / افتتاح", ty5:"تعاون / مسابقة",
+  l_attach_brief:"أرفق الملخّص", h_brief:"الملصق أو ورقة العرض أو خطة الفعالية أو أي مستند. PDF أو Word أو PowerPoint أو Excel أو صور. يكفي ذلك، وسنتواصل معك إن احتجنا المزيد.",
+  f_note:"هل هناك ما يجب أن نعرفه؟ (اختياري)", f_start_o:"البداية (اختياري)", f_end_o:"النهاية (اختياري)",
+  l_details:"التفاصيل", f_title:"العنوان", ph_title:"مثال: اشترِ قطعة واحصل على الثانية مجانًا على جميع العبايات", f_details:"التفاصيل", ph_details:"ما هو العرض، ولمن، وكيف يحصل عليه العملاء؟",
+  f_off:"الخصم أو السعر", ph_off:"مثال: خصم 30%، 99 درهم", f_link:"رابط (الموقع أو الحجز أو صفحة المنتج)", f_start:"البداية", f_end:"النهاية", h_end:"اتركه فارغًا للفعالية ليوم واحد.",
+  f_terms:"الشروط والأحكام", ph_terms:"مثال: حتى نفاد الكمية. لا يُجمع مع عروض أخرى.",
+  l_where:"أين تود أن نعرضه؟", ch1:"موقع المول", h_where:"يقرر فريقنا ما يناسب كل قناة. يرجى الإرسال قبل 3 أيام عمل على الأقل من تاريخ البداية.",
+  f_art:"التصاميم أو الصور", h_art:"ملصقات أو صور منتجات أو شعار. تُصغَّر الصور الكبيرة تلقائيًا.",
+  c_consent_o:"أنا مفوَّض بالتصرف نيابةً عن هذا المتجر والمعلومات صحيحة. أسمح لمول سيتي لاند بتحرير هذا النص والتصاميم واستخدامها على موقعه ووسائل التواصل الاجتماعي.",
+  b_send_promo:"إرسال إلى فريق التسويق", h_submit_promo:"نراجع كل شيء قبل نشره.",
+  pv_h:"هكذا قد يظهر على قنواتنا", pv_note:"معاينة فقط. يصمم فريقنا المنشور النهائي.", pv_ph:"سيظهر عنوانك هنا", pv_brand:"علامتك التجارية",
+  tr_lead:"أدخل الرقم المرجعي من رسالة التأكيد والبريد الإلكتروني الذي استخدمته.", tr_ref:"الرقم المرجعي", b_check:"التحقق من الحالة",
+  foot:"نستخدم البيانات في هذه الصفحة فقط لإدارة التواصل مع مستأجري مول سيتي لاند والتسويق. لتصحيح بياناتك أو حذفها، ردّ على أي رسالة تأكيد."
+};
+function t(k, vars){
+  var s = (LANG === "ar" && (AR[k] || MSG.ar[k])) || EN[k] || MSG.en[k] || k;
+  if (vars) Object.keys(vars).forEach(function(v){ s = s.replace("{" + v + "}", vars[v]); });
+  return s;
+}
+function applyLang(){
+  document.documentElement.lang = LANG; document.documentElement.dir = LANG === "ar" ? "rtl" : "ltr";
+  $$("[data-i18n]").forEach(function(el){ el.textContent = t(el.dataset.i18n); });
+  $$("[data-i18n-ph]").forEach(function(el){ el.setAttribute("placeholder", (LANG === "ar" && AR[el.dataset.i18nPh]) || EN["ph:" + el.dataset.i18nPh]); });
+  $("#lang").textContent = LANG === "ar" ? "English" : "العربية";
+  lsSet("cl_lang", LANG);
+}
+$$("[data-i18n]").forEach(function(el){ EN[el.dataset.i18n] = el.textContent; });
+$$("[data-i18n-ph]").forEach(function(el){ EN["ph:" + el.dataset.i18nPh] = el.getAttribute("placeholder"); });
+$("#lang").onclick = function(){ LANG = LANG === "ar" ? "en" : "ar"; applyLang(); };
+LANG = lsGet("cl_lang") || ((navigator.language || "").indexOf("ar") === 0 ? "ar" : "en");
+if (LANG === "ar") applyLang();
+
+/* ---------------- tabs ---------------- */
+var TABS = { profile: ["#tab-profile", "#p-profile"], promotions: ["#tab-promo", "#p-promo"], track: ["#tab-track", "#p-track"] };
+function show(which){
+  Object.keys(TABS).forEach(function(k){
+    var on = k === which;
+    $(TABS[k][1]).hidden = !on; $(TABS[k][0]).setAttribute("aria-selected", String(on));
+  });
+  try { history.replaceState(null, "", "#" + which); } catch (e) {}
+}
+Object.keys(TABS).forEach(function(k){ $(TABS[k][0]).onclick = function(){ show(k); }; });
+show(TABS[location.hash.slice(1)] ? location.hash.slice(1) : "profile");
+
+/* ---------------- quick / full mode ---------------- */
+function applyMode(form, mode){
+  form.dataset.mode = mode;
+  $$("[data-m]", form).forEach(function(sec){
+    var hide = sec.dataset.m !== mode;
+    sec.hidden = hide;
+    $$("input,select,textarea,button", sec).forEach(function(c){ c.disabled = hide; });
+  });
+  $$("[data-setmode]", form).forEach(function(b){ b.setAttribute("aria-pressed", String(b.dataset.setmode === mode)); });
+  $(".msg", form).hidden = true;
+}
+$$("form[data-mode]").forEach(function(form){
+  $$("[data-setmode]", form).forEach(function(b){ b.onclick = function(){ applyMode(form, b.dataset.setmode); }; });
+  applyMode(form, form.dataset.mode);
+});
+
+/* ---------------- spam check (optional) ---------------- */
+if (TURNSTILE_SITEKEY) {
+  var ts = document.createElement("script");
+  ts.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"; ts.async = true;
+  ts.onload = function(){ $$(".cf-turnstile").forEach(function(el){ turnstile.render(el, { sitekey: TURNSTILE_SITEKEY }); }); };
+  document.head.appendChild(ts);
+}
+
+/* ---------------- files ---------------- */
+function fmt(n){ return n > 1048576 ? (n/1048576).toFixed(1) + " MB" : Math.max(1, Math.round(n/1024)) + " KB"; }
+function normType(f){
+  var ext = (f.name.split(".").pop() || "").toLowerCase();
+  return (f.type && f.type !== "application/octet-stream") ? f.type : (EXT[ext] || f.type);
+}
+function allFiles(form){ var out = []; var b = store[form.id] || {}; Object.keys(b).forEach(function(k){ out = out.concat(b[k]); }); return out; }
+function shrink(file, type, bucket){
+  // Phone photos are often 5-10 MB. Resize big pictures to 2000 px so they upload fast and fit the limit. Logos are left alone.
+  var canShrink = bucket !== "logos" && file.size > 1.2 * 1048576 && (type === "image/jpeg" || type === "image/png" || type === "image/webp");
+  if (!canShrink || !window.createImageBitmap) return Promise.resolve({ name: file.name, type: type, size: file.size, blob: file });
+  return createImageBitmap(file).then(function(bm){
+    var k = Math.min(1, 2000 / Math.max(bm.width, bm.height));
+    var c = document.createElement("canvas"); c.width = Math.round(bm.width * k); c.height = Math.round(bm.height * k);
+    var g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height); g.drawImage(bm, 0, 0, c.width, c.height);
+    return new Promise(function(res){ c.toBlob(function(b){
+      if (b && b.size < file.size) res({ name: file.name.replace(/\.\w+$/, "") + ".jpg", type: "image/jpeg", size: b.size, blob: b });
+      else res({ name: file.name, type: type, size: file.size, blob: file });
+    }, "image/jpeg", 0.85); });
+  }).catch(function(){ return { name: file.name, type: type, size: file.size, blob: file }; });
+}
+function renderList(form, bucket){
+  var ul = $('[data-list="' + bucket + '"]', form); ul.innerHTML = "";
+  ((store[form.id] || {})[bucket] || []).forEach(function(f, i){
+    var li = document.createElement("li");
+    if (f.type.indexOf("image/") === 0 && f.type !== "image/svg+xml") { var im = document.createElement("img"); im.alt = ""; im.src = URL.createObjectURL(f.blob); li.appendChild(im); }
+    var n = document.createElement("span"); n.textContent = f.name + " (" + fmt(f.size) + ")";
+    var x = document.createElement("button"); x.type = "button"; x.textContent = "×"; x.setAttribute("aria-label", "Remove " + f.name);
+    x.onclick = function(){ store[form.id][bucket].splice(i, 1); renderList(form, bucket); };
+    li.appendChild(n); li.appendChild(x); ul.appendChild(li);
+  });
+}
+$$("input[type=file]").forEach(function(inp){
+  inp.addEventListener("change", function(){
+    var form = inp.form, bucket = inp.dataset.bucket, problems = [], jobs = [];
+    store[form.id] = store[form.id] || {}; store[form.id][bucket] = store[form.id][bucket] || [];
+    Array.prototype.forEach.call(inp.files, function(f){
+      var type = normType(f);
+      if (!type || (inp.dataset.types === "img" ? IMG_ONLY.concat(["application/pdf"]) : Object.keys(EXT).map(function(k){ return EXT[k]; })).indexOf(type) < 0) problems.push(t("e_type", { n: f.name }));
+      else if (f.size > MAX_RAW) problems.push(t("e_big", { n: f.name }));
+      else jobs.push(shrink(f, type, bucket));
+    });
+    Promise.all(jobs).then(function(list){
+      list.forEach(function(f){
+        if (f.size > MAX_FILE) problems.push(t("e_big", { n: f.name }));
+        else if (allFiles(form).length >= MAX_FILES) problems.push(t("e_max"));
+        else if (allFiles(form).reduce(function(a, b){ return a + b.size; }, 0) + f.size > MAX_TOTAL) problems.push(t("e_total"));
+        else store[form.id][bucket].push(f);
+      });
+      inp.value = ""; renderList(form, bucket);
+      if (problems.length) showError(form, problems.join(" "));
+    });
+  });
+});
+function toB64(f){
+  return new Promise(function(res, rej){
+    var r = new FileReader();
+    r.onload = function(){ res({ name: f.name, type: f.type, data: String(r.result).split(",")[1] }); };
+    r.onerror = rej; r.readAsDataURL(f.blob);
+  });
+}
+function showError(form, text){ var m = $(".msg", form); m.textContent = text; m.hidden = false; m.scrollIntoView({ behavior: "smooth", block: "center" }); }
+
+/* ---------------- remember me, drafts, personal links ---------------- */
+var ME_KEYS = ["unit", "brand", "contactName", "contactEmail", "contactMobile"];
+function fillNamed(name, val){ $$('input[name="' + name + '"]').forEach(function(el){ if (!el.value) el.value = val; }); }
+function restore(){
+  $$("form[data-form]").forEach(function(form){
+    var d = lsGet("cl_draft_" + form.id);
+    if (d) Object.keys(d).forEach(function(k){ var el = form.elements[k]; if (el && el.type !== "checkbox" && el.type !== "file" && !el.value) el.value = d[k]; });
+  });
+  var me = lsGet("cl_me");
+  if (me) ME_KEYS.forEach(function(k){ if (me[k]) fillNamed(k, me[k]); });
+  if (me && me.contactEmail) $("#tr-email").value = $("#tr-email").value || me.contactEmail;
+  var q = new URLSearchParams(location.search);      // personal QR link: ?unit=Shop%20245&brand=Carrefour
+  ["unit", "brand"].forEach(function(k){ if (q.get(k)) $$('input[name="' + k + '"]').forEach(function(el){ el.value = q.get(k); }); });
+}
+restore();
+$$("form[data-form]").forEach(function(form){
+  form.addEventListener("input", function(){
+    var d = {};
+    Array.prototype.forEach.call(form.elements, function(el){
+      if (el.name && el.name !== "hp" && el.name !== "consent" && el.name !== "contactEmail" && el.type !== "checkbox" && el.type !== "file" && el.value) d[el.name] = el.value;
+    });
+    lsSet("cl_draft_" + form.id, d);
+  });
+});
+
+/* ---------------- submit ---------------- */
+function enabledBuckets(form){
+  return $$("input[type=file]", form).filter(function(i){ return !i.disabled; }).map(function(i){ return i.dataset.bucket; });
+}
+$$("form[data-form]").forEach(function(form){
+  var keyId = uuid();
+  form.addEventListener("submit", function(ev){
+    ev.preventDefault();
+    $(".msg", form).hidden = true;
+    if (!ENDPOINT) { showError(form, t("notready")); return; }
+    if (!form.checkValidity()) { form.reportValidity(); return; }
+    var mode = form.dataset.mode, files = store[form.id] || {};
+    if (mode === "quick") {
+      if (form.dataset.form === "promotion" && !((files.brief || []).length || ($("#pq-note").value || "").trim())) { showError(form, t("need_brief")); return; }
+      if (form.dataset.form === "profile" && !(files.documents || []).length) { showError(form, t("need_doc")); return; }
+    }
+    var btn = $("button[type=submit]", form), label = btn.textContent;
+    btn.disabled = true; btn.textContent = t("sending");
+
+    var fd = new FormData(form), payload = { form: form.dataset.form, mode: mode, key: keyId, elapsed: Math.round((Date.now() - started) / 1000) };
+    fd.forEach(function(v, k){ if (k === "channels") { (payload.channels = payload.channels || []).push(v); } else if (!(v instanceof File)) { payload[k] = v; } });
+    payload.consent = !!form.elements.consent.checked;
+    payload.token = fd.get("cf-turnstile-response") || "";
+
+    var names = enabledBuckets(form);
+    Promise.all(names.map(function(n){ return Promise.all((files[n] || []).map(toB64)); })).then(function(res){
+      names.forEach(function(n, i){ if (res[i].length) payload[n] = res[i]; });
+      return fetch(ENDPOINT, { method: "POST", body: JSON.stringify(payload) });
+    }).then(function(r){ return r.json(); }).then(function(out){
+      if (!out.ok) throw new Error(out.error || t("failed"));
+      var me = lsGet("cl_me") || {}; ME_KEYS.forEach(function(k){ if (payload[k]) me[k] = payload[k]; }); lsSet("cl_me", me);
+      lsDel("cl_draft_" + form.id);
+      $("#tr-ref").value = out.ref; $("#tr-email").value = payload.contactEmail;
+      var done = $(".done", form.parentNode); done.innerHTML = "";
+      var h = document.createElement("h2"); h.textContent = t("done_h");
+      var p = document.createElement("p"); p.textContent = t("done_p", { e: payload.contactEmail });
+      var r2 = document.createElement("span"); r2.className = "ref"; r2.textContent = out.ref;
+      var cp = document.createElement("button"); cp.type = "button"; cp.className = "btn ghost"; cp.textContent = t("copy");
+      cp.onclick = function(){ try { navigator.clipboard.writeText(out.ref).then(function(){ cp.textContent = t("copied"); }); } catch (e) {} };
+      var p2 = document.createElement("p");
+      p2.textContent = form.dataset.form === "profile" ? t(mode === "quick" ? "done_store_q" : "done_store_f") : t("done_promo");
+      var again = document.createElement("button"); again.type = "button"; again.className = "btn ghost"; again.textContent = t("another");
+      again.onclick = function(){ location.hash = form.dataset.form === "profile" ? "#profile" : "#promotions"; location.reload(); };
+      done.appendChild(h); done.appendChild(p); done.appendChild(r2); done.appendChild(cp); done.appendChild(p2); done.appendChild(again);
+      form.hidden = true; done.hidden = false; window.scrollTo({ top: 0, behavior: "smooth" });
+    }).catch(function(err){
+      btn.disabled = false; btn.textContent = label;
+      if (window.turnstile) { try { turnstile.reset(); } catch (e) {} }
+      showError(form, (err && err.message && err.message !== "Failed to fetch") ? err.message : t("failed"));
+    });
+  });
+});
+
+/* ---------------- live preview ---------------- */
+function pv(){
+  var sel = $("#pm-type"), v = function(id){ return ($(id).value || "").trim(); };
+  var d = function(x){ if (!x) return ""; try { return new Date(x + "T00:00:00").toLocaleDateString(LANG === "ar" ? "ar-AE" : "en-GB", { day: "numeric", month: "short", year: "numeric" }); } catch (e) { return x; } };
+  $("#pv-type").textContent = sel.value ? sel.options[sel.selectedIndex].text : t("ty1");
+  $("#pv-brand").textContent = v("#pm-brand") || t("pv_brand");
+  $("#pv-title").textContent = v("#pm-title") || t("pv_ph");
+  $("#pv-off").textContent = v("#pm-off");
+  var a = d($("#pm-start").value), b = d($("#pm-end").value);
+  $("#pv-date").textContent = a ? (b && b !== a ? a + " – " + b : a) : "";
+}
+$("#f-promo").addEventListener("input", pv); $("#f-promo").addEventListener("change", pv);
+var _al = applyLang; applyLang = function(){ _al(); pv(); };
+pv();
+
+/* ---------------- track ---------------- */
+$("#f-track").addEventListener("submit", function(ev){
+  ev.preventDefault();
+  var form = ev.target, out = $("#tr-out"); $(".msg", form).hidden = true; out.hidden = true;
+  if (!ENDPOINT) { showError(form, t("notready")); return; }
+  if (!form.checkValidity()) { form.reportValidity(); return; }
+  var btn = $("button[type=submit]", form), label = btn.textContent; btn.disabled = true; btn.textContent = t("checking");
+  fetch(ENDPOINT + "?action=status&ref=" + encodeURIComponent($("#tr-ref").value.trim()) + "&email=" + encodeURIComponent($("#tr-email").value.trim()))
+    .then(function(r){ return r.json(); }).then(function(d){
+      btn.disabled = false; btn.textContent = label;
+      if (!d.ok) { showError(form, d.error || t("tr_err")); return; }
+      out.innerHTML = "";
+      var h = document.createElement("h2"); h.textContent = d.title;
+      var chip = document.createElement("span"); chip.className = "chip" + (["Approved", "Published", "Reviewed"].indexOf(d.status) >= 0 ? " good" : (["Rejected", "Needs changes"].indexOf(d.status) >= 0 ? " bad" : ""));
+      chip.textContent = t("st_" + d.status);
+      var p = document.createElement("p"); p.textContent = t("tr_sent", { d: d.submitted }); p.className = "hint";
+      out.appendChild(h); out.appendChild(chip); out.appendChild(p);
+      if (d.note) { var n = document.createElement("div"); n.className = "note"; n.textContent = t("tr_note") + " " + d.note; out.appendChild(n); }
+      out.hidden = false;
+    }).catch(function(){ btn.disabled = false; btn.textContent = label; showError(form, t("tr_err")); });
+});
+</script>
+</body>
+</html>
