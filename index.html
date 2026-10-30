@@ -557,7 +557,7 @@ $("#f-track").addEventListener("submit", function(ev){
   if (!ENDPOINT) { showError(form, t("notready")); return; }
   if (!form.checkValidity()) { form.reportValidity(); return; }
   var btn = $("button[type=submit]", form), label = btn.textContent; btn.disabled = true; btn.textContent = t("checking");
-  fetch(ENDPOINT + "?action=status&ref=" + encodeURIComponent($("#tr-ref").value.trim()) + "&email=" + encodeURIComponent($("#tr-email").value.trim()))
+  fetch(ENDPOINT, { method: "POST", body: JSON.stringify({ action: "status", ref: $("#tr-ref").value.trim(), email: $("#tr-email").value.trim() }) })
     .then(function(r){ return r.json(); }).then(function(d){
       btn.disabled = false; btn.textContent = label;
       if (!d.ok) { showError(form, d.error || t("tr_err")); return; }
