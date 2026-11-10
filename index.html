@@ -101,7 +101,7 @@ dl.cl{margin:0}dl.cl dt{font-weight:700;margin-top:8px}
 
 /* ---- v5 design refresh ---- */
 .banner{position:relative;border-radius:22px;overflow:hidden;display:flex;align-items:flex-end;min-height:clamp(250px,34vw,380px);background:var(--navy);box-shadow:0 18px 40px -18px rgba(40,35,93,.55);margin-bottom:18px;isolation:isolate}
-.banner.slim{min-height:clamp(120px,16vw,170px);border-radius:18px;margin-bottom:14px}.banner.slim h2{color:#fff!important;font-size:clamp(20px,3vw,28px);margin:0 0 2px;text-shadow:0 2px 14px rgba(0,0,0,.4)}.banner.slim p{margin:0;color:#fff;opacity:.92}.banner.slim .bt{padding:16px clamp(16px,3vw,28px)}
+.banner.slim{display:grid;grid-template-columns:1.15fr .85fr;align-items:stretch;min-height:0;border-radius:18px;margin-bottom:14px}.banner.slim>img{position:static;grid-column:2;grid-row:1;z-index:auto;width:100%;height:200px;min-height:0;object-fit:cover;object-position:50% 24%;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 28%);mask-image:linear-gradient(90deg,transparent 0,#000 28%)}[dir=rtl] .banner.slim>img{-webkit-mask-image:linear-gradient(270deg,transparent 0,#000 28%);mask-image:linear-gradient(270deg,transparent 0,#000 28%)}.banner.slim::before{display:none}.banner.slim .bt{grid-column:1;grid-row:1;align-self:center;z-index:1}@media(max-width:640px){.banner.slim{grid-template-columns:1fr}.banner.slim>img{grid-column:1;grid-row:1;min-height:0;height:120px;-webkit-mask-image:none;mask-image:none}.banner.slim .bt{grid-column:1;grid-row:2}}.banner.slim h2{color:#fff!important;font-size:clamp(20px,3vw,28px);margin:0 0 2px;text-shadow:0 2px 14px rgba(0,0,0,.4)}.banner.slim p{margin:0;color:#fff;opacity:.92}.banner.slim .bt{padding:16px clamp(16px,3vw,28px)}
 .banner>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 38%;z-index:-2}
 .banner::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(18,16,48,.05) 0%,rgba(18,16,48,.3) 48%,rgba(18,16,48,.9) 100%)}
 .banner .bt{padding:24px clamp(18px,4vw,36px);color:#fff;width:100%}
@@ -237,8 +237,12 @@ function testSafe(data) {
   if (d.pub) d.pub = Object.assign({}, d.pub, { email: me });
   return d;
 }
+/** Quietly fixes links so nobody sees an error about https://: adds it, upgrades http, trims spaces. */
+const fixLink = v => { v = String(v || '').trim(); if (!v || v[0] === '@' || /^(data|blob|mailto|tel):/i.test(v) || /\s/.test(v) || v.indexOf('.') < 0) return v; if (/^https:\/\//i.test(v)) return v; if (/^http:\/\//i.test(v)) return 'https://' + v.slice(7); return 'https://' + v.replace(/^\/+/, ''); };
+const LINKY = /(^|[a-z])(url|link|website)$/i;
+function smartLinks(x) { if (!x || typeof x !== 'object') return x; Object.keys(x).forEach(k => { const v = x[k]; if (typeof v === 'string' && LINKY.test(k)) x[k] = fixLink(v); else if (v && typeof v === 'object' && !Array.isArray(v) && k !== 'files') smartLinks(v); }); return x; }
 async function api(op, data) {
-  const res = await post(Object.assign({ action: 'api', token: S.token, op: op }, testSafe(data) || {}));
+  const res = await post(Object.assign({ action: 'api', token: S.token, op: op }, testSafe(smartLinks(data)) || {}));
   if (res.auth) { signOut(_('Please sign in again.')); throw new Error(_('Please sign in again.')); }
   if (!res.ok) throw new Error(res.error || _('Something went wrong. Please try again.'));
   return res;
@@ -285,7 +289,7 @@ function fld(model, sp, onchange, reg) {
       return h('label', { class: 'chip' }, cb, h('span', null, _(o)));
     }));
   } else if (sp.t === 'yn') inp = h('div', { class: 'chips', role: 'radiogroup', 'aria-label': _(sp.l) }, ['Yes', 'No'].map(o => h('label', { class: 'chip' }, h('input', { type: 'radio', name: id, value: o, checked: model[k] === o, onchange: () => set(o) }), h('span', null, _(o)))));
-  else inp = h('input', { id: id, type: { email: 'email', tel: 'tel', url: 'url', date: 'date', time: 'time' }[sp.t] || 'text', maxlength: sp.max, value: model[k] || '', min: sp.min || null, placeholder: sp.ph ? _(sp.ph) : null, autocomplete: sp.ac || 'off', oninput: e => set(e.target.value), onchange: e => set(e.target.value) });
+  else inp = h('input', { id: id, type: { email: 'email', tel: 'tel', url: 'url', date: 'date', time: 'time' }[sp.t] || 'text', maxlength: sp.max, value: model[k] || '', min: sp.min || null, placeholder: sp.ph ? _(sp.ph) : null, autocomplete: sp.ac || 'off', oninput: e => set(e.target.value), onchange: e => set(e.target.value), onblur: sp.t === 'url' ? e => { const v = fixLink(e.target.value); if (v !== e.target.value) { e.target.value = v; set(v); } } : null });
   let cnt = null;
   if (sp.t === 'area' && sp.max) { cnt = h('span', { class: 'cnt' }, (model[k] || '').length + '/' + sp.max); lab.appendChild(cnt); }
   wrap.appendChild(inp);
@@ -417,11 +421,12 @@ function appView() {
   root.appendChild(h('div', { class: 'row', style: 'margin-bottom:12px' }, h('div', { class: 'sp1' }, h('h1', null, a.brand), h('div', { class: 'mute' }, _('Unit') + ' ' + a.unit + ' · ' + a.name))));
   if (a.status === 'Pending') root.appendChild(h('div', { class: 'note warn', role: 'status' }, _('Your store already has an account. We have asked the person who set it up to confirm you with one click. You will get an email as soon as they do.')));
   const cnt = { offers: m.offers ? m.offers.changes : 0, requests: m.requests ? m.requests.waiting : 0 };
-  root.appendChild(h('div', { class: 'tabs', role: 'tablist' }, TABS.filter(x => a.status !== 'Pending' || x[0] === 'overview' || x[0] === 'account').map(x => h('button', { role: 'tab', 'aria-selected': String(S.tab === x[0]), onclick: () => { if (S.dirty && !confirm(_('You have unsaved changes. Leave without saving?'))) return; S.dirty = false; S.tab = x[0]; render(); } }, _(x[1]), cnt[x[0]] ? h('span', { class: 'n' }, cnt[x[0]]) : null))));
+  root.appendChild(h('div', { class: 'tabs', role: 'tablist' }, TABS.filter(x => (a.status !== 'Pending' || x[0] === 'overview' || x[0] === 'account') && (x[0] !== 'requests' || mcGet() === 'Yes')).map(x => h('button', { role: 'tab', 'aria-selected': String(S.tab === x[0]), onclick: () => { if (S.dirty && !confirm(_('You have unsaved changes. Leave without saving?'))) return; S.dirty = false; S.tab = x[0]; render(); } }, _(x[1]), cnt[x[0]] ? h('span', { class: 'n' }, cnt[x[0]]) : null))));
   if (a.status !== 'Pending' && !mcGet() && S.tab !== 'account') root.appendChild(h('div', { class: 'note warn', role: 'status' }, h('b', null, _('One quick question left.') + ' '), _('Please tell us about your lease so we can plan the right support.') + ' ', h('a', { href: '#', onclick: e => { e.preventDefault(); S.tab = 'account'; render(); } }, _('Answer it now') + ' →')));
   if (S.tab !== 'overview' && PAGE_HEAD[S.tab]) { const ph = PAGE_HEAD[S.tab]; root.appendChild(h('div', { class: 'banner slim' }, h('img', { src: ph[0], alt: '' }), h('div', { class: 'bt' }, h('h2', null, _(ph[1])), h('p', null, _(ph[2]))))); }
   const body = h('div'); root.appendChild(body);
   if (a.status === 'Pending' && S.tab !== 'overview' && S.tab !== 'account') S.tab = 'overview';
+  if (S.tab === 'requests' && mcGet() !== 'Yes') S.tab = 'overview';
   ({ overview: overviewView, store: storeView, offers: offersView, requests: requestsView, account: accountView }[S.tab])(body);
   return root;
 }
@@ -493,7 +498,7 @@ function overviewView(root) {
   const rq = m.requests || {};
   const reqCard = h('div', { class: 'card' }, h('h2', null, _('Marketing requests')), h('p', null, rq.open ? rq.open + ' ' + _('open') + (rq.waiting ? ', ' + rq.waiting + ' ' + _('waiting for your reply') : '') : _('Need a correction, a photo shoot or a feature? Ask the marketing team here.')),
     h('button', { class: 'btn sm g', onclick: go('requests') }, _('Open requests')));
-  root.appendChild(h('div', { class: 'grid g3' }, stCard, offCard, reqCard));
+  root.appendChild(h('div', { class: 'grid g3' }, mcGet() === 'Yes' ? [stCard, offCard, reqCard] : [stCard, offCard]));
   root.appendChild(insightsCard(m, a));
   if (a.status !== 'Pending') root.appendChild(h('div', { class: 'card' }, h('h2', null, _('How we support you')), h('div', { class: 'grid g3' },
     [['⚡', 'Do it yourself, instantly', 'Update your store page and share your ready-made offers any time.'], ['✅', 'We review and post', 'We check every offer you send and email you when it is approved.'], ['🤝', 'Special support', 'Up to 2 special requests a year for stores whose lease includes marketing.']].map(x => h('div', { class: 'tile' }, h('b', { style: 'font-size:17px' }, x[0] + ' ' + _(x[1])), h('span', null, _(x[2])))))));
@@ -568,9 +573,7 @@ async function storeView(root) {
   // people
   left.appendChild(section('Who the marketing team speaks to', 'Private. This is never shown on the website. It lets us reach the right person about your promotions without asking again.',
     h('div', { class: 'grid g2' }, fld(q, { k: 'ownerName', l: 'In charge of promotions', t: 'text', req: true, max: 120, ac: 'name' }, refresh, reg), fld(q, { k: 'ownerRole', l: 'Their role', t: 'text', max: 80 }, refresh, reg),
-      fld(q, { k: 'ownerEmail', l: 'Their email', t: 'email', req: true, max: 160 }, refresh, reg), fld(q, { k: 'ownerMobile', l: 'Their mobile', t: 'tel', req: true, max: 40 }, refresh, reg),
-      fld(q, { k: 'backupName', l: 'Backup contact', t: 'text', max: 120 }, refresh, reg), fld(q, { k: 'backupMobile', l: 'Backup mobile', t: 'tel', max: 40 }, refresh, reg),
-      fld(q, { k: 'preferred', l: 'Best way to reach you', t: 'select', o: ['Email', 'WhatsApp', 'Phone'] }, refresh, reg), fld(q, { k: 'bestTime', l: 'Best time to reach you', t: 'text', max: 120, ph: 'e.g. Weekdays 10:00 to 14:00' }, refresh, reg)),
+      fld(q, { k: 'ownerEmail', l: 'Their email', t: 'email', req: true, max: 160 }, refresh, reg), fld(q, { k: 'ownerMobile', l: 'Their mobile', t: 'tel', req: true, max: 40 }, refresh, reg)),
     fld(q, { k: 'note', l: 'Anything else the marketing team should know?', t: 'area', max: 500, rows: 3 }, refresh, reg)));
   const consent = h('input', { type: 'checkbox' });
   const save = h('button', { class: 'btn g', type: 'button' }, _('Save draft')), send = h('button', { class: 'btn', type: 'button' }, s.live ? _('Publish changes') : _('Publish my page'));
