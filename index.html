@@ -126,7 +126,10 @@ dl.cl{margin:0}dl.cl dt{font-weight:700;margin-top:8px}
 .mode.off{opacity:.6}.mode.off input{cursor:not-allowed}.mode input:checked+div{border-color:var(--or);background:var(--soft);box-shadow:0 0 0 3px rgba(230,80,29,.15)}.mode input:focus-visible+div{outline:3px solid var(--teal);outline-offset:2px}
 .tips{margin:8px 0 0;padding-inline-start:18px;font-size:13px;color:var(--ink)}
 .card{transition:box-shadow .2s}.card:hover{box-shadow:0 10px 28px -14px rgba(40,35,93,.35)}
-</style></head><body>
+</style><link rel="preload" as="image" href="assets/mall-hero.jpg" fetchpriority="high">
+<link rel="preconnect" href="https://script.google.com">
+<link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+</head><body>
 <div class="demo" id="demo" hidden>DEMO: nothing is saved or sent. <button id="demoBtn" style="margin-inline-start:8px;border:0;border-radius:8px;padding:4px 10px;font-weight:700;cursor:pointer">Pretend marketing replied</button></div>
 <header class="top" id="topbar"><div class="in"><img class="logo" src="assets/logo.png" alt="Cityland Mall" width="120" height="53" decoding="async"><span class="sp"></span><button id="lang" type="button">عربي</button><button id="out" type="button" hidden>Sign out</button></div></header><div class="stripe" id="stripe"></div>
 <main id="app" aria-live="polite"></main><footer class="foot" id="foot"></footer><div id="toast" aria-live="polite"></div>
@@ -349,7 +352,7 @@ function stripFile(f) { return { name: f.name, type: f.type, data: f.data }; }
 /* ---------- sign out / auth ---------- */
 function signOut(msg) {
   if (S.token && !msg) { post({ action: 'api', token: S.token, op: 'logout' }).catch(() => {}); }
-  store_('cl_token', null); Object.assign(S, { token: null, acct: null, me: null, store: null, offers: null, reqs: null, tab: 'overview', _warm: false, _storeTry: false });
+  store_('cl_token', null); store_('cl_me', null); Object.assign(S, { token: null, acct: null, me: null, store: null, offers: null, reqs: null, tab: 'overview', _warm: false, _storeTry: false });
   render(msg);
 }
 const AUTH = { mode: 'in', step: 'email', email: '', signup: { name: '', role: '', mobile: '', unit: '', brand: '', consent: false }, hp: '' };
@@ -402,10 +405,19 @@ function authView(msg) {
 
 /* ---------- shell ---------- */
 async function boot() {
+  // speed: show the last known account at once, then refresh quietly in the background
+  let shown = '';
+  try {
+    const c = S.token ? store_('cl_me') : null;
+    if (c) { const r0 = JSON.parse(c); if (r0 && r0.account) { S.me = r0; S.acct = r0.account; shown = c; render(); } }
+  } catch (e) { /* ignore a bad cache */ }
   try {
     const r = await api('me'); S.me = r; S.acct = r.account;
-    render();
-  } catch (e) { /* signOut already ran on auth errors */ if (S.token) { fail(e); render(); } }
+    const j = JSON.stringify(r);
+    if (S.token) store_('cl_me', j);
+    const typing = document.activeElement && /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName);
+    if (j !== shown && !S.dirty && !typing) render();
+  } catch (e) { /* signOut already ran on auth errors */ if (S.token && !shown) { fail(e); render(); } }
 }
 function render(msg) {
   document.documentElement.lang = lang; document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
