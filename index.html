@@ -254,6 +254,20 @@ function fld(model, sp, onchange, reg) {
   if (reg) reg[k] = { wrap: wrap, err: err };
   return wrap;
 }
+/* ---------- lease question: do you pay for marketing under your contract? ---------- */
+const MC_OPTS = ['Yes', 'No', 'Not sure'];
+const MC_NOTE = { 'Yes': 'Thank you. The marketing team will use this to plan your promotion.', 'No': 'Thank you, noted. Your offers are still welcome.', 'Not sure': 'No problem. We will check with the leasing team and let you know. You can carry on.' };
+const mcKey = () => 'cl_mc_' + String((S.acct && S.acct.email) || '').toLowerCase();
+const mcLocal = () => { const v = store_(mcKey()); return MC_OPTS.indexOf(v) >= 0 ? v : ''; };
+const mcGet = () => (S.store && S.store.priv && MC_OPTS.indexOf(S.store.priv.marketingContract) >= 0 ? S.store.priv.marketingContract : '') || mcLocal();
+function mcField(model, onchange, reg, req) {
+  const note = h('p', { class: 'small mute', style: 'margin:-6px 0 12px' });
+  const show = () => { const v = model.marketingContract; note.textContent = v ? _(MC_NOTE[v] || '') : ''; note.hidden = !v; };
+  const f = fld(model, { k: 'marketingContract', l: 'Do you pay for marketing under your lease contract?', t: 'types', o: MC_OPTS, req: !!req, h: 'Check your lease contract if you are not sure. “Not sure” is a fine answer.' },
+    k => { if (model.marketingContract) store_(mcKey(), model.marketingContract); show(); if (onchange) onchange(k); }, reg);
+  show();
+  return h('div', null, f, note);
+}
 function markErr(reg, k, msg) { if (reg[k]) { reg[k].wrap.classList.add('err'); reg[k].err.textContent = msg || _('Please fill this in.'); reg[k].err.hidden = false; } }
 function section(title, sub, ...kids) { return h('div', { class: 'card' }, h('h2', null, _(title)), sub ? h('p', { class: 'mute small', style: 'margin-top:-6px' }, _(sub)) : null, ...kids); }
 function badge(status) {
@@ -372,6 +386,12 @@ function greet() { const hr = +new Intl.DateTimeFormat('en-GB', { timeZone: 'Asi
 function overviewView(root) {
   const m = S.me || {}, st = m.store, a = S.acct, of = m.offers || {};
   if (S.justPublished) { S.justPublished = false; if (st && st.live && st.url) root.appendChild(h('div', { class: 'card win' }, h('h2', null, '🎉 ' + _('Your page is live!')), h('p', null, _('Shoppers can now find') + ' ' + a.brand + ' ' + _('on the Cityland Mall website.')), h('div', { class: 'row' }, h('a', { class: 'btn sm', href: st.url, target: '_blank', rel: 'noopener' }, _('See my page')), h('button', { class: 'btn sm g', onclick: () => copyText(st.url, _('Link copied.')) }, _('Copy link'))))); }
+  const rqA = m.requests || {}, todo = [];
+  if (st && st.status === 'Needs changes') todo.push([_('Your store page needs a change'), 'store', _('Fix it')]);
+  if (of.changes) todo.push([_('Offers that need a change') + ': ' + of.changes, 'offers', _('Review')]);
+  if (rqA.waiting) todo.push([_('Requests waiting for your reply') + ': ' + rqA.waiting, 'requests', _('Reply')]);
+  if (todo.length && a.status !== 'Pending') root.appendChild(h('div', { class: 'card', style: 'border-inline-start:6px solid var(--or)' }, h('h2', null, _('Needs your attention')),
+    todo.map(x => h('div', { class: 'row', style: 'margin:6px 0' }, h('span', { class: 'sp1' }, x[0]), h('button', { class: 'btn sm', type: 'button', onclick: () => { S.tab = x[1]; render(); } }, x[2])))));
   const live = !!(st && st.live);
   const sentOffer = (of.review || 0) + (of.approved || 0) + (of.changes || 0) > 0;
   const steps = [[_('Create your account'), true, null], [_('Set up and publish your store page'), live, 'store'], [_('Send your first offer or event'), sentOffer, 'offers']];
@@ -460,6 +480,9 @@ async function storeView(root) {
   const items0 = k => k === 'gallery' ? false : !!(p[k] || S.pending[k]);
   left.appendChild(section('Pictures', 'Pictures are resized for you. Use clear, bright photos without text on them.',
     logoErr, pick('Logo *', 'Square works best. A PNG with a transparent background is ideal.', 'logo', false), pick('Main photo', 'Wide photo of your shop front or products (shown at the top of your page).', 'hero', false), pick('Gallery', 'Up to 6 more photos.', 'gallery', true)));
+  // lease
+  if (!q.marketingContract && mcLocal()) q.marketingContract = mcLocal();
+  left.appendChild(section('Your lease', 'Private. It helps us plan the right support for your store.', mcField(q, refresh, reg, false)));
   // people
   left.appendChild(section('Who the marketing team speaks to', 'Private. This is never shown on the website. It lets us reach the right person about your promotions without asking again.',
     h('div', { class: 'grid g2' }, fld(q, { k: 'ownerName', l: 'In charge of promotions', t: 'text', req: true, max: 120, ac: 'name' }, refresh, reg), fld(q, { k: 'ownerRole', l: 'Their role', t: 'text', max: 80 }, refresh, reg),
@@ -497,13 +520,111 @@ async function storeView(root) {
 }
 
 AR = {"Overview": "نظرة عامة", "Store page": "صفحة المتجر", "Offers": "العروض", "Requests": "الطلبات", "Account": "الحساب", "A picture or document (optional)": "صورة أو مستند (اختياري)", "A shared folder works too (Drive, Dropbox…).": "يمكنك أيضاً مشاركة مجلد (درايف، دروبوكس…).", "Access": "الصلاحية", "Add files": "إضافة ملفات", "Age restriction": "قيود العمر", "All items, selected brands, categories…": "جميع المنتجات، علامات محددة، فئات…", "Anything else the marketing team should know?": "هل هناك شيء آخر يجب أن يعرفه فريق التسويق؟", "Anything we must not say": "أي شيء يجب ألا نذكره", "As on your lease.": "كما في عقد الإيجار.", "Attach": "إرفاق", "Back": "رجوع", "Backup contact": "جهة اتصال بديلة", "Backup mobile": "جوال الجهة البديلة", "Best time to reach them": "أفضل وقت للتواصل معهم", "Best time to reach you": "أفضل وقت للتواصل معك", "Best way to reach you": "أفضل طريقة للتواصل معك", "Blackout dates": "التواريخ المستثناة", "Brief completeness": "اكتمال البيانات", "Button link": "رابط الزر", "Button text": "نص الزر", "Can it be combined with other offers?": "هل يمكن دمجه مع عروض أخرى؟", "Cancel": "إلغاء", "Card or payment partner": "البطاقة أو شريك الدفع", "Category": "الفئة", "Check your offer": "راجع عرضك", "Choose a picture": "اختر صورة", "Choose…": "اختر…", "Close": "إغلاق", "Closed": "مغلق", "Code": "الرمز", "Continue": "متابعة", "Copy Monday to every day": "انسخ ساعات الاثنين لكل الأيام", "Copy as new": "نسخ كعرض جديد", "Copy link": "نسخ الرابط", "Create account and send code": "إنشاء الحساب وإرسال الرمز", "Create my store page": "إنشاء صفحة متجري", "Create your account": "أنشئ حسابك", "Create store account": "إنشاء حساب متجر", "Description": "الوصف", "Draft caption for social media": "مسودة نص للمنصات الاجتماعية", "Draft saved.": "تم حفظ المسودة.", "Edit": "تعديل", "Edit my page": "تعديل صفحتي", "Email": "البريد الإلكتروني", "Email address": "عنوان البريد الإلكتروني", "Ends": "ينتهي", "Enter your code": "أدخل الرمز", "Everything we need is here.": "كل ما نحتاجه موجود.", "Facebook": "فيسبوك", "From the marketing team": "من فريق التسويق", "From time": "من الساعة", "Full description": "الوصف الكامل", "Get set up": "ابدأ الإعداد", "Good to know": "معلومات مفيدة", "Handles to tag": "الحسابات المراد الإشارة إليها", "Hashtags to use": "الوسوم المستخدمة", "Headline": "العنوان", "How do customers redeem it?": "كيف يستفيد العملاء من العرض؟", "How does the discount work?": "كيف يعمل الخصم؟", "How urgent?": "ما مدى الاستعجال؟", "I am authorised to manage this store’s page and offers.": "أنا مخوّل بإدارة صفحة هذا المتجر وعروضه.", "I confirm the details and pictures are accurate and we may publish them on the Cityland Mall website and social channels.": "أؤكد أن التفاصيل والصور صحيحة، ويحق لكم نشرها على موقع مول سيتي لاند وقنواته الاجتماعية.", "I own these pictures or have the right to use them, and the details are correct.": "أملك هذه الصور أو لدي حق استخدامها، والتفاصيل صحيحة.", "If your promotion needs a permit, add its number.": "إذا كان العرض يتطلب ترخيصاً، أضف رقمه.", "In charge of promotions": "المسؤول عن العروض", "In charge of this promotion": "المسؤول عن هذا العرض", "Instagram": "إنستغرام", "Is your staff briefed?": "هل تم إطلاع فريقك؟", "It works for 10 minutes. Check your spam folder if you cannot see it.": "الرمز صالح لمدة 10 دقائق. تحقق من البريد غير الهام إن لم تجده.", "Keep your page on the Cityland Mall website up to date, send us your offers and events, and reach the mall team. No password needed.": "حدّث صفحتك على موقع مول سيتي لاند، وأرسل لنا عروضك وفعالياتك، وتواصل مع فريق المول. بدون كلمة مرور.", "Landscape works best (at least 1200 px wide). It is used on the website and social media.": "الصورة العرضية أفضل (بعرض 1200 بكسل على الأقل). تُستخدم على الموقع ووسائل التواصل.", "Languages you can supply": "اللغات التي يمكنك توفيرها", "Leave empty if every day.": "اتركه فارغاً إن كان كل الأيام.", "Leave without saving?": "المغادرة دون حفظ؟", "Limit per customer": "الحد الأقصى لكل عميل", "Link copied.": "تم نسخ الرابط.", "Live preview": "معاينة مباشرة", "Loading…": "جارٍ التحميل…", "Main image": "الصورة الرئيسية", "Maximum discount": "الحد الأقصى للخصم", "May we use your logo with the offer?": "هل يمكننا استخدام شعارك مع العرض؟", "Menu or catalogue link": "رابط القائمة أو الكتالوج", "Minimum spend (AED)": "الحد الأدنى للإنفاق (درهم)", "Mobile": "الجوال", "Mobile number": "رقم الجوال", "More pictures, artwork or documents": "صور أو تصاميم أو مستندات إضافية", "Need to change the unit or store name? Send a request and the marketing team will update it.": "تريد تغيير رقم الوحدة أو اسم المتجر؟ أرسل طلباً وسيقوم فريق التسويق بتحديثه.", "New offer or event": "عرض أو فعالية جديدة", "New request": "طلب جديد", "Next": "التالي", "No account yet and just one thing to send?": "ليس لديك حساب ولديك أمر واحد فقط لإرساله؟", "Not shown unless you want it on the page.": "لا يظهر إلا إذا أردت إظهاره في الصفحة.", "Nothing open.": "لا توجد طلبات مفتوحة.", "Nothing sent yet.": "لم يتم إرسال شيء بعد.", "Nothing yet.": "لا شيء بعد.", "Offers and events": "العروض والفعاليات", "One sentence shoppers will see on social media and screens.": "جملة واحدة يراها المتسوقون على وسائل التواصل والشاشات.", "Open requests": "فتح الطلبات", "Optional. Shown under your hours.": "اختياري. يظهر تحت ساعات العمل.", "Or a link to full-size pictures": "أو رابط للصور بالحجم الكامل", "PDF, Word, PowerPoint, Excel or pictures. Up to 5 MB each.": "PDF أو Word أو PowerPoint أو Excel أو صور. حتى 5 ميغابايت لكل ملف.", "Pick everything that applies.": "اختر كل ما ينطبق.", "Please add a short subject.": "يرجى إضافة عنوان قصير.", "Please add your logo.": "يرجى إضافة شعارك.", "Please complete": "يرجى إكمال", "Please describe what happened or what you need.": "يرجى وصف ما حدث أو ما تحتاجه.", "Please fill in the highlighted fields.": "يرجى تعبئة الحقول المميزة.", "Please fill this in.": "يرجى تعبئة هذا الحقل.", "Please sign in again.": "يرجى تسجيل الدخول مرة أخرى.", "Please tick the box on the Pictures step to confirm you may use the images.": "يرجى وضع علامة في خطوة الصور لتأكيد حقك في استخدامها.", "Please tick the confirmation box at the end.": "يرجى وضع علامة التأكيد في النهاية.", "Please wait…": "يرجى الانتظار…", "Preferred posting dates": "تواريخ النشر المفضلة", "Print this for your shop window or counter. It opens your page on the mall website.": "اطبعه لواجهة المتجر أو الكاونتر. يفتح صفحتك على موقع المول.", "Promo code": "رمز الخصم", "Questions customers will ask, with answers": "أسئلة العملاء المتوقعة مع إجاباتها", "Remove": "إزالة", "Sale or promotion permit number": "رقم ترخيص التخفيضات أو العرض", "Save": "حفظ", "Save draft": "حفظ كمسودة", "Saved.": "تم الحفظ.", "Send": "إرسال", "Send for review": "إرسال للمراجعة", "Send me a code": "أرسل لي رمزاً", "Send to the mall team": "إرسال إلى فريق المول", "Send your first offer or event": "أرسل أول عرض أو فعالية", "Send your store page for review": "أرسل صفحة متجرك للمراجعة", "Sent for review. You can still change it: each change goes back to review.": "تم الإرسال للمراجعة. يمكنك التعديل، وكل تعديل يعود للمراجعة.", "Sent! We emailed you a confirmation.": "تم الإرسال! أرسلنا لك تأكيداً بالبريد.", "Sent.": "تم الإرسال.", "Share your page": "شارك صفحتك", "Short and clear. Up to 80 characters.": "قصير وواضح. حتى 80 حرفاً.", "Short caption": "نص قصير", "Show QR code": "إظهار رمز QR", "Sign in": "تسجيل الدخول", "Sign out": "تسجيل الخروج", "Sign-in code": "رمز الدخول", "Snapchat": "سناب شات", "So the mall team can answer on your behalf.": "ليتمكن فريق المول من الرد نيابةً عنك.", "So the marketing team can reach the right person directly. Pre-filled from your store page.": "ليتمكن فريق التسويق من الوصول للشخص المناسب مباشرة. معبأ مسبقاً من صفحة متجرك.", "Something went wrong on our side. Please try again in a few minutes.": "حدث خطأ من جانبنا. يرجى المحاولة بعد دقائق.", "Something went wrong. Please try again.": "حدث خطأ. يرجى المحاولة مرة أخرى.", "Special hours": "ساعات خاصة", "Start my first offer": "ابدأ أول عرض", "Starts": "يبدأ", "Still needed to send": "مطلوب قبل الإرسال", "Stock or quota": "الكمية أو الحصة", "Store": "المتجر", "Store email": "بريد المتجر", "Store name": "اسم المتجر", "Store phone": "هاتف المتجر", "Subject": "الموضوع", "Tagline": "الشعار اللفظي", "Teaser date": "تاريخ التشويق", "Tell the mall team about a complaint, a maintenance issue or a question. We reply": "أخبر فريق المول عن شكوى أو مشكلة صيانة أو سؤال. نرد", "Terms and conditions": "الشروط والأحكام", "The earlier version stays online until the new one is approved.": "تبقى النسخة السابقة منشورة حتى تتم الموافقة على الجديدة.", "The marketing team decides the final mix.": "يقرر فريق التسويق التشكيلة النهائية.", "The person who approves captions, images and discounts.": "الشخص الذي يوافق على النصوص والصور والخصومات.", "The value": "القيمة", "Their email": "بريدهم الإلكتروني", "Their mobile": "جوالهم", "Their role": "منصبهم", "This file is over 5 MB.": "حجم الملف يتجاوز 5 ميغابايت.", "This file is too large.": "الملف كبير جداً.", "This is how your page will look.": "هكذا ستظهر صفحتك.", "This picture could not be read.": "تعذّرت قراءة الصورة.", "TikTok": "تيك توك", "To time": "إلى الساعة", "Tone of voice": "أسلوب الخطاب", "Type": "النوع", "Type of store": "نوع المتجر", "Unit": "الوحدة", "Unit number": "رقم الوحدة", "Untitled": "بدون عنوان", "Up to 100 characters.": "حتى 100 حرف.", "Up to 6 extra files.": "حتى 6 ملفات إضافية.", "Up to 6 photos.": "حتى 6 صور.", "Use a different email": "استخدم بريداً آخر", "Use the quick form": "استخدم النموذج السريع", "We can write the captions if you cannot.": "يمكننا كتابة النصوص إن لم تستطع.", "We could not reach the server. Please check your connection and try again.": "تعذّر الوصول إلى الخادم. تحقق من الاتصال وحاول مجدداً.", "We sent a 6-digit code to": "أرسلنا رمزاً من 6 أرقام إلى", "Website": "الموقع الإلكتروني", "Welcome! Your account is ready.": "مرحباً! حسابك جاهز.", "What do you sell or offer? What makes you different? Write for shoppers.": "ماذا تبيع أو تقدّم؟ ما الذي يميّزك؟ اكتب للمتسوقين.", "What does it apply to?": "على ماذا ينطبق؟", "What happened or what do you need?": "ماذا حدث أو ماذا تحتاج؟", "What is excluded?": "ما المستثنى؟", "What is it about?": "ما موضوعه؟", "What is the goal?": "ما الهدف؟", "What is the offer, who is it for, why should shoppers care?": "ما هو العرض ولمن هو ولماذا يهم المتسوقين؟", "What kind of offer is it?": "ما نوع العرض؟", "WhatsApp number": "رقم واتساب", "When can we start hinting about it, if you want a build-up?": "متى نبدأ بالتلميح عنه إن أردت التشويق؟", "Where would you like us to promote it?": "أين تريد أن نروّج له؟", "Where, if relevant": "أين، إن كان ذلك مناسباً", "Which days?": "أي الأيام؟", "Who approves the content": "من يعتمد المحتوى", "Who is it for?": "لمن هو؟", "Who signs off content": "من يعتمد المحتوى", "Will you post about it too?": "هل ستنشر عنه أنت أيضاً؟", "With country code, e.g. +971…": "مع رمز الدولة، مثل +971…", "Withdraw": "سحب", "Withdraw this offer?": "سحب هذا العرض؟", "Would you like a paid boost?": "هل ترغب في ترويج مدفوع؟", "Write a message…": "اكتب رسالة…", "You": "أنت", "You can send this once the marketing team confirms your access.": "يمكنك الإرسال بعد أن يؤكد فريق التسويق صلاحيتك.", "You have not sent an offer yet. Tell us everything about it once, and we will take it from there: no follow-up emails.": "لم ترسل عرضاً بعد. أخبرنا بكل شيء مرة واحدة ونكمل نحن، دون رسائل متابعة.", "You have not sent your page yet. It takes about 10 minutes.": "لم ترسل صفحتك بعد. تستغرق حوالي 10 دقائق.", "You have unsaved changes. Leave without saving?": "لديك تغييرات غير محفوظة. المغادرة دون حفظ؟", "Your details": "بياناتك", "Your headline": "عنوانك", "Your message": "رسالتك", "Your name": "اسمك", "Your offers and events": "عروضك وفعالياتك", "Your page goes live on the mall website": "تُنشر صفحتك على موقع المول", "Your page is live. Changes you send are checked first, and the current version stays online meanwhile.": "صفحتك منشورة. التعديلات تُراجع أولاً وتبقى النسخة الحالية منشورة.", "Your role": "منصبك", "Your short caption": "نصك القصير", "Your store page": "صفحة متجرك", "Your store, in one place": "متجرك في مكان واحد", "closes": "يغلق", "open": "مفتوحة", "opens": "يفتح", "waiting for your reply": "بانتظار ردك", "within 2 working days": "خلال يومي عمل", "Yes": "نعم", "No": "لا", "In review": "قيد المراجعة", "Approved": "تمت الموافقة", "Live": "منشور", "Needs changes": "يحتاج تعديلاً", "Draft": "مسودة", "Not this time": "ليس هذه المرة", "Waiting for you": "بانتظارك", "Resolved": "تم الحل", "In progress": "قيد المعالجة", "Waiting for confirmation": "بانتظار التأكيد", "The offer": "العرض", "How it works": "آلية العرض", "When": "المدة", "Promote it": "الترويج", "Pictures": "الصور", "People": "الأشخاص", "Review": "المراجعة", "About your store": "عن متجرك", "This is what shoppers see on the mall website.": "هذا ما يراه المتسوقون على موقع المول.", "Opening hours": "ساعات العمل", "How shoppers reach you": "كيف يتواصل معك المتسوقون", "Who we speak to about promotions": "من نتواصل معه بشأن العروض", "Private. This is never shown on the website. It lets the marketing team reach the right person without asking again.": "خاص. لا يظهر أبداً على الموقع. يتيح لفريق التسويق الوصول للشخص المناسب دون إعادة السؤال.", "Pictures are resized for you. Use clear, bright photos without text on them.": "يتم تغيير حجم الصور تلقائياً. استخدم صوراً واضحة ومضيئة دون نصوص.", "Logo *": "الشعار *", "Main photo": "الصورة الرئيسية", "Gallery": "المعرض", "Change": "تغيير", "Square works best. A PNG with a transparent background is ideal.": "الشكل المربع أفضل. ويفضّل PNG بخلفية شفافة.", "Wide photo of your shop front or products (shown at the top of your page).": "صورة عريضة لواجهة المتجر أو منتجاتك (تظهر أعلى صفحتك).", "Up to 6 more photos.": "حتى 6 صور إضافية.", "Call": "اتصال", "Open now": "مفتوح الآن", "Closed now": "مغلق الآن", "Photos": "الصور", "Find out more": "اعرف المزيد", "Menu or catalogue": "القائمة أو الكتالوج", "Urgent": "عاجل", "Safety": "سلامة", "Normal": "عادي", "Maintenance": "صيانة", "Facilities": "مرافق", "Marketing support": "دعم التسويق", "Question": "سؤال", "Feedback": "ملاحظات", "Discount or sale": "خصم أو تخفيضات", "Buy more, save more": "اشترِ أكثر ووفّر أكثر", "Gift with purchase": "هدية مع الشراء", "New arrival or launch": "وصول جديد أو إطلاق", "Loyalty or member offer": "عرض الولاء أو الأعضاء", "Event or activation": "فعالية أو نشاط", "Collaboration": "تعاون", "Seasonal menu or collection": "قائمة أو مجموعة موسمية", "Service offer": "عرض خدمة", "Mall campaign tie-in": "ضمن حملة المول", "Percentage off": "نسبة خصم", "Amount off (AED)": "مبلغ خصم (درهم)", "Buy one get one": "اشترِ واحداً واحصل على الثاني", "Buy X get Y": "اشترِ X واحصل على Y", "Free gift": "هدية مجانية", "Fixed price": "سعر ثابت", "Bundle price": "سعر الباقة", "Cashback or points": "استرداد نقدي أو نقاط", "Free service": "خدمة مجانية", "Other": "أخرى", "In store": "في المتجر", "Online": "عبر الإنترنت", "Show social post": "إبراز المنشور", "Show promo code": "إبراز رمز الخصم", "App or QR": "تطبيق أو QR", "Delivery apps": "تطبيقات التوصيل", "Everyone": "الجميع", "Mall loyalty members": "أعضاء ولاء المول", "Tourists": "السياح", "Residents": "المقيمون", "Families": "العائلات", "Students": "الطلاب", "Bank card holders": "حاملو بطاقات البنوك", "New customers": "عملاء جدد", "Mall website": "موقع المول", "Instagram post": "منشور إنستغرام", "Instagram story": "ستوري إنستغرام", "Instagram reel": "ريلز إنستغرام", "X (Twitter)": "إكس (تويتر)", "WhatsApp channel": "قناة واتساب", "Email newsletter": "نشرة بريدية", "In-mall digital screens": "الشاشات الرقمية في المول", "Directory kiosk": "كشك الدليل", "Press release": "بيان صحفي", "Footfall": "زيادة الزوار", "Sales": "المبيعات", "Awareness": "الوعي", "New product launch": "إطلاق منتج جديد", "Clear stock": "تصريف المخزون", "Loyalty sign-ups": "تسجيلات الولاء", "English": "الإنجليزية", "Arabic": "العربية", "Monday": "الاثنين", "Fashion": "أزياء", "Footwear": "أحذية", "Accessories & jewellery": "إكسسوارات ومجوهرات", "Beauty & health": "جمال وصحة", "Electronics": "إلكترونيات", "Home & furniture": "المنزل والأثاث", "Supermarket & grocery": "سوبرماركت وبقالة", "Food & beverage": "مطاعم ومشروبات", "Cafe & dessert": "مقاهٍ وحلويات", "Kids & toys": "أطفال وألعاب", "Sports & fitness": "رياضة ولياقة", "Entertainment": "ترفيه", "Services": "خدمات", "Family friendly": "مناسب للعائلات", "Kids area": "منطقة أطفال", "Click & collect": "اطلب واستلم", "Home delivery": "توصيل للمنزل", "Gift cards": "بطاقات هدايا", "Wheelchair accessible": "مهيأ للكراسي المتحركة", "Student discount": "خصم للطلاب", "Arabic-speaking staff": "موظفون ناطقون بالعربية", "Free Wi-Fi": "واي فاي مجاني", "Outdoor seating": "جلسات خارجية", "Takeaway": "طلبات خارجية", "Pending": "قيد الانتظار", "Your access is waiting for confirmation from the marketing team. You will get an email as soon as it is done. Until then you cannot see or send anything for this unit.": "صلاحيتك بانتظار تأكيد فريق التسويق. سيصلك بريد فور اكتمال ذلك. إلى ذلك الحين لا يمكنك عرض أو إرسال أي شيء لهذه الوحدة.", "We could not find an account for this email. Please create your store account.": "لم نجد حسابًا لهذا البريد الإلكتروني. يرجى إنشاء حساب المتجر.", "Tenant Marketing Portal": "بوابة التسويق للمستأجرين", "Marketing requests": "طلبات التسويق", "Marketing team": "فريق التسويق", "Publish my page": "انشر صفحتي", "Publish changes": "انشر التعديلات", "Your page is live!": "صفحتك منشورة الآن!", "Send to the marketing team": "إرسال إلى فريق التسويق", "Sent to the marketing team": "تم الإرسال إلى فريق التسويق", "Write a caption for me": "اكتب لي نصاً", "Caption to post": "النص المراد نشره", "Creative to post": "التصميم المراد نشره", "The post": "المنشور", "What is the offer?": "ما هو العرض؟", "When does it run?": "متى يبدأ العرض؟", "Where should we post it?": "أين ننشره؟", "Who do we contact about it?": "مع من نتواصل بشأنه؟", "Use standard terms": "استخدم الشروط المعتادة", "Choose your picture": "اختر صورتك", "How it will look": "هكذا سيظهر", "Ready to post": "جاهز للنشر", "Good morning": "صباح الخير", "Good afternoon": "مساء الخير", "Good evening": "مساء الخير", "Correct my store page": "تصحيح صفحة متجري", "Promote my store": "الترويج لمتجري", "Photo or video": "صور أو فيديو", "Social media feature or tag": "ذكر أو مشاركة على وسائل التواصل", "Mall website listing": "الإدراج في موقع المول", "Marketing question": "سؤال تسويقي", "What do you need?": "ماذا تحتاج؟", "Tell us what you need": "أخبرنا بما تحتاجه", "How soon?": "ما مدى الاستعجال؟", "For leasing, maintenance or operations, please contact the mall management office.": "للتأجير أو الصيانة أو التشغيل، يرجى التواصل مع مكتب إدارة المول.", "This goes to the marketing team. For leasing, maintenance or operations, please contact the mall management office.": "يصل هذا الطلب إلى فريق التسويق. للتأجير أو الصيانة أو التشغيل، يرجى التواصل مع مكتب إدارة المول.", "Your marketing home at Cityland Mall: keep your store page up to date, send us your offers and events, and ask the marketing team for support. No password needed.": "مساحتك التسويقية في مول سيتي لاند: حدّث صفحة متجرك، وأرسل عروضك وفعالياتك، واطلب الدعم من فريق التسويق. لا حاجة لكلمة مرور.", "Send my first offer": "أرسل عرضي الأول", "Copy embed code": "نسخ رمز التضمين", "View my page": "عرض صفحتي"};
+Object.assign(AR, {
+  "Do you pay for marketing under your lease contract?": "هل تدفع مقابل التسويق بموجب عقد الإيجار الخاص بك؟",
+  "Not sure": "لست متأكداً",
+  "Check your lease contract if you are not sure. “Not sure” is a fine answer.": "راجع عقد الإيجار إذا لم تكن متأكداً. إجابة «لست متأكداً» مقبولة.",
+  "Thank you. The marketing team will use this to plan your promotion.": "شكراً لك. سيستخدم فريق التسويق هذه المعلومة للتخطيط لترويج متجرك.",
+  "Thank you, noted. Your offers are still welcome.": "شكراً لك، تم التسجيل. عروضك ما زالت مرحّباً بها.",
+  "No problem. We will check with the leasing team and let you know. You can carry on.": "لا مشكلة. سنتحقق مع فريق التأجير ونخبرك. يمكنك المتابعة.",
+  "Marketing payment in your lease": "بند التسويق في عقد الإيجار",
+  "Your lease": "عقد الإيجار الخاص بك",
+  "One quick question so the right support is planned for your store.": "سؤال سريع لنخطط الدعم المناسب لمتجرك.",
+  "Private. It helps us plan the right support for your store.": "خاص. يساعدنا على تخطيط الدعم المناسب لمتجرك.",
+  "What happens next": "ماذا يحدث بعد ذلك",
+  "We review your offer.": "نراجع عرضك.",
+  "You get an email when it is approved, or a note if we need a change.": "ستصلك رسالة بريد إلكتروني عند الموافقة، أو ملاحظة إذا احتجنا إلى تعديل.",
+  "We post it on the channels you chose.": "ننشره على القنوات التي اخترتها.",
+  "Needs your attention": "يحتاج إلى انتباهك",
+  "Your store page needs a change": "صفحة متجرك تحتاج إلى تعديل",
+  "Fix it": "عدّلها",
+  "Offers that need a change": "عروض تحتاج إلى تعديل",
+  "Requests waiting for your reply": "طلبات بانتظار ردك",
+  "Reply": "رد",
+  "Received": "تم الاستلام",
+  "Done": "تم",
+  "You can change this yourself. Edit your store page and it goes live straight away.": "يمكنك تعديل ذلك بنفسك. عدّل صفحة متجرك وستظهر التغييرات فوراً.",
+  "Edit my store page": "تعديل صفحة متجري",
+  "Sending… this can take up to 30 seconds when there are pictures. Please keep this page open.": "جارٍ الإرسال… قد يستغرق ذلك حتى 30 ثانية عند وجود صور. يرجى إبقاء هذه الصفحة مفتوحة.",
+  "Copied.": "تم النسخ.",
+  "This portal is run by the Cityland Mall marketing team. For leasing or maintenance, please contact the mall management office.": "تدير هذه البوابة فريق التسويق في سيتي لاند مول. للتأجير أو الصيانة، يرجى التواصل مع مكتب إدارة المول.",
+  "Your store already has an account. We have asked the person who set it up to confirm you with one click. You will get an email as soon as they do.": "لدى متجرك حساب بالفعل. طلبنا من الشخص الذي أنشأه تأكيدك بنقرة واحدة. ستصلك رسالة بريد إلكتروني فور قيامه بذلك.",
+  "Shoppers can now find": "يمكن للمتسوقين الآن العثور على",
+  "on the Cityland Mall website.": "على موقع سيتي لاند مول.",
+  "See my page": "عرض صفحتي",
+  "Set up and publish your store page": "أنشئ صفحة متجرك وانشرها",
+  "You are all set up. Send us your next offer whenever you are ready.": "كل شيء جاهز. أرسل لنا عرضك التالي متى شئت.",
+  "A few quick steps and your store is ready to be promoted by the Cityland Mall marketing team.": "بضع خطوات سريعة ويصبح متجرك جاهزاً ليروّج له فريق التسويق في سيتي لاند مول.",
+  "Your page is what shoppers see on the Cityland Mall website. It takes about 10 minutes.": "صفحتك هي ما يراه المتسوقون على موقع سيتي لاند مول. تستغرق حوالي 10 دقائق.",
+  "Nothing sent yet. Send the creative and caption, and we will post it.": "لم يتم إرسال شيء بعد. أرسل التصميم والنص وسننشره.",
+  "Need a correction, a photo shoot or a feature? Ask the marketing team here.": "تحتاج إلى تصحيح أو جلسة تصوير أو إبراز؟ اطلب من فريق التسويق هنا.",
+  "Embed code copied.": "تم نسخ كود التضمين.",
+  "Your page is live on the Cityland Mall website. Publish again after any change and it updates straight away.": "صفحتك منشورة على موقع سيتي لاند مول. انشرها مجدداً بعد أي تغيير وستتحدث فوراً.",
+  "Please write at least a sentence.": "يرجى كتابة جملة واحدة على الأقل.",
+  "Add your opening hours above, or a note here.": "أضف ساعات العمل أعلاه، أو ملاحظة هنا.",
+  "Sent! The marketing team will publish it shortly.": "تم الإرسال! سينشرها فريق التسويق قريباً.",
+  "We have your creative and caption for": "وصلنا التصميم والنص الخاصان بـ",
+  "You will get an email as soon as it is approved.": "ستصلك رسالة بريد إلكتروني فور الموافقة عليه.",
+  "Nothing sent yet. Send us the creative and the caption, and the marketing team will post it on the channels you choose.": "لم يتم إرسال شيء بعد. أرسل لنا التصميم والنص وسينشره فريق التسويق على القنوات التي تختارها.",
+  "Your creative appears here": "سيظهر تصميمك هنا",
+  "Your caption appears here": "سيظهر نصك هنا",
+  "characters": "حرفاً",
+  "Creative (picture)": "التصميم (صورة)",
+  "Add a headline first.": "أضف عنواناً أولاً.",
+  "Replace your caption with a suggested one?": "هل تريد استبدال نصك بنص مقترح؟",
+  "Caption copied.": "تم نسخ النص.",
+  "Copy": "نسخ",
+  "Please add the picture or video cover we should post.": "يرجى إضافة الصورة أو غلاف الفيديو الذي سننشره.",
+  "Square or portrait works best on Instagram. At least 1080 px wide.": "المربع أو الطولي الأنسب لإنستغرام. بعرض 1080 بكسل على الأقل.",
+  "More files or a link to full-size artwork (optional)": "ملفات إضافية أو رابط للتصميم بالحجم الكامل (اختياري)",
+  "Pictures or PDF, up to 5 MB each.": "صور أو PDF، حتى 5 ميغابايت لكل ملف.",
+  "Quick pick": "اختيار سريع",
+  "Starts today, 1 week": "يبدأ اليوم، أسبوع",
+  "This weekend": "نهاية هذا الأسبوع",
+  "2 weeks": "أسبوعان",
+  "1 month": "شهر",
+  "The end date is before the start date.": "تاريخ الانتهاء قبل تاريخ البدء.",
+  "Please tick the box to confirm you may use the pictures and the details are correct.": "يرجى تحديد المربع لتأكيد أن لديك الحق في استخدام الصور وأن التفاصيل صحيحة.",
+  "Ask the marketing team for a correction, support or a feature. We reply": "اطلب من فريق التسويق تصحيحاً أو دعماً أو إبرازاً. نرد",
+  "Please describe what you need.": "يرجى وصف ما تحتاج إليه.",
+  "Need to change the unit or store name? Send a marketing request and we will update it.": "تريد تغيير رقم الوحدة أو اسم المتجر؟ أرسل طلباً إلى التسويق وسنقوم بتحديثه.",
+  "Who signs off content (optional)": "من يعتمد المحتوى (اختياري)",
+  "Link to full-size pictures or video": "رابط للصور أو الفيديو بالحجم الكامل",
+  "How can shoppers redeem it?": "كيف يمكن للمتسوقين الاستفادة منه؟",
+  "The offer in detail (optional)": "تفاصيل العرض (اختياري)",
+  "Promo code (if any)": "رمز الخصم (إن وجد)",
+  "Minimum spend in AED (if any)": "الحد الأدنى للإنفاق بالدرهم (إن وجد)",
+  "Channels": "القنوات",
+  "Accounts to tag": "الحسابات المراد الإشارة إليها",
+  "Link for the post (optional)": "رابط للمنشور (اختياري)",
+  "Name": "الاسم",
+  "Which offer or page, if relevant": "أي عرض أو صفحة، إن لزم",
+  "Only if someone else approves captions, images and discounts.": "فقط إذا كان شخص آخر يعتمد النصوص والصور والخصومات.",
+  "Write it exactly as you would like it posted. Tip: start with the offer, then dates, then where to find you.": "اكتبه تماماً كما تريد نشره. نصيحة: ابدأ بالعرض، ثم التواريخ، ثم مكان وجودك.",
+  "Short and clear: exclusions, while stocks last, minimum spend.": "قصيرة وواضحة: الاستثناءات، حتى نفاد الكمية، الحد الأدنى للإنفاق.",
+  "Up to 80 characters.": "حتى 80 حرفاً.",
+  "What does it include, and what does it apply to?": "ماذا يشمل، وعلى ماذا ينطبق؟",
+  "Choose Urgent only if it affects something going live in the next few days.": "اختر «عاجل» فقط إذا كان يؤثر على أمر سيُنشر خلال الأيام القليلة القادمة.",
+  "e.g. Store manager": "مثال: مدير المتجر",
+  "A short line that sums you up": "عبارة قصيرة تلخص متجرك",
+  "e.g. Homeware": "مثال: مستلزمات المنزل",
+  "e.g. Ramadan: 10:00 to 00:00": "مثال: رمضان: 10:00 إلى 00:00",
+  "e.g. Order online": "مثال: اطلب عبر الإنترنت",
+  "e.g. Weekdays 10:00 to 14:00": "مثال: أيام الأسبوع 10:00 إلى 14:00",
+  "e.g. 30% off all cushions": "مثال: خصم 30% على جميع الوسائد",
+  "e.g. my store page, or the cushions offer": "مثال: صفحة متجري، أو عرض الوسائد",
+  "need a change": "تحتاج إلى تعديل",
+  "with the marketing team": "لدى فريق التسويق",
+  "approved or live": "معتمدة أو منشورة",
+  "drafts": "مسودات"
+});
 /* ---------- offers: one page, ready-to-post content ---------- */
 const OFFER_TYPES = ['Discount or sale', 'Buy more, save more', 'Gift with purchase', 'New arrival or launch', 'Event or activation', 'Loyalty or member offer', 'Collaboration', 'Other'];
 const REDEEM = ['In store', 'Online', 'Show promo code', 'Show social post'];
 const CHANNELS = ['Instagram post', 'Instagram story', 'Instagram reel', 'TikTok', 'Facebook', 'X (Twitter)', 'WhatsApp channel', 'Mall website', 'In-mall digital screens'];
-const O_REQ = ['type', 'headline', 'blurb', 'start', 'end', 'terms', 'channels', 'ownerName', 'ownerEmail', 'ownerMobile'];
+const O_REQ = ['type', 'headline', 'blurb', 'start', 'end', 'terms', 'channels', 'marketingContract', 'ownerName', 'ownerEmail', 'ownerMobile'];
 const O_REC = ['description', 'promoCode', 'handles', 'ctaUrl'];
-const O_LABEL = { type: 'Type', headline: 'Headline', blurb: 'Caption', start: 'Start date', end: 'End date', terms: 'Terms and conditions', channels: 'Channels', ownerName: 'Contact name', ownerEmail: 'Contact email', ownerMobile: 'Contact mobile' };
+const O_LABEL = { type: 'Type', headline: 'Headline', blurb: 'Caption', start: 'Start date', end: 'End date', terms: 'Terms and conditions', channels: 'Channels', marketingContract: 'Marketing payment in your lease', ownerName: 'Contact name', ownerEmail: 'Contact email', ownerMobile: 'Contact mobile' };
 const EMOJI = ['🎉', '✨', '🔥', '💛', '🛍️', '🎁', '⭐', '👉'];
 function oFilled(v) { return Array.isArray(v) ? v.length > 0 : !!String(v || '').trim(); }
 function readiness(f, hasImage) {
@@ -519,7 +640,9 @@ const isoPlus = n => { const d = new Date(Date.now() + 4 * 3600000 + n * 864e5);
 function newOfferState(from, dup) {
   const q = (S.store && S.store.priv) || {}, a = S.acct;
   const base = { ownerName: q.ownerName || a.name, ownerEmail: q.ownerEmail || a.email, ownerMobile: q.ownerMobile || a.mobile, channels: ['Instagram post'], redemption: ['In store'] };
+  base.marketingContract = mcGet();
   const f = from ? JSON.parse(JSON.stringify(from.f)) : base;
+  if (!f.marketingContract) f.marketingContract = mcGet();
   if (dup) { f.start = ''; f.end = ''; }
   return { ref: from && !dup ? from.ref : null, f: f, hero: from && !dup ? from.hero : null, files: from && !dup ? (from.files || []).slice() : [], newHero: null, newFiles: [], rights: !!(from && !dup && from.rights), key: uid(), status: from && !dup ? from.status : null, note: from && !dup ? from.note : '' };
 }
@@ -528,7 +651,7 @@ async function offersView(root) {
   if (S.offers === null) { root.appendChild(h('p', { class: 'mute' }, _('Loading…'))); try { S.offers = (await api('offers_list')).offers; if (!S.store) S.store = (await api('store_get')).store; } catch (e) { fail(e); S.offers = []; } render(); return; }
   if (S.newOffer) { S.newOffer = false; O = newOfferState(); }
   if (O) return offerForm(root);
-  if (S.sentOffer) { const so = S.sentOffer; S.sentOffer = null; root.appendChild(h('div', { class: 'card win' }, h('h2', null, '🎉 ' + _('Sent to the marketing team')), h('p', null, _('We have your creative and caption for') + ' “' + (so.f.headline || '') + '”. ' + _('You will get an email as soon as it is approved.')), timeline('New'))); }
+  if (S.sentOffer) { const so = S.sentOffer; S.sentOffer = null; root.appendChild(h('div', { class: 'card win' }, h('h2', null, '🎉 ' + _('Sent to the marketing team')), h('p', null, _('We have your creative and caption for') + ' “' + (so.f.headline || '') + '”. ' + _('You will get an email as soon as it is approved.')), h('p', { class: 'small', style: 'margin:10px 0 4px;font-weight:700' }, _('What happens next')), h('ol', { class: 'small', style: 'margin:0 0 12px;padding-inline-start:20px' }, ['We review your offer.', 'You get an email when it is approved, or a note if we need a change.', 'We post it on the channels you chose.'].map(x => h('li', null, _(x)))), timeline('New'))); }
   root.appendChild(h('div', { class: 'row', style: 'margin-bottom:12px' }, h('h2', { class: 'sp1', style: 'margin:0' }, _('Your offers and events')), h('button', { class: 'btn', onclick: () => { O = newOfferState(); render(); } }, '+ ' + _('New offer or event'))));
   if (!S.offers.length) root.appendChild(h('div', { class: 'card' }, h('p', null, _('Nothing sent yet. Send us the creative and the caption, and the marketing team will post it on the channels you choose.')), h('button', { class: 'btn', onclick: () => { O = newOfferState(); render(); } }, _('Send my first offer'))));
   S.offers.forEach(o => root.appendChild(h('div', { class: 'card' },
@@ -558,6 +681,7 @@ function offerForm(root) {
   const side = h('aside'); const left = h('div'); let t;
   const logoUrl = () => (S.store && S.store.pub && S.store.pub.logo && S.store.pub.logo.url) || '';
   const drawSide = () => {
+    if (!O) return;
     clear(side); const rd = readiness(f, hasImage());
     const cap = String(f.blurb || '');
     put(side, h('h3', null, _('How it will look')),
@@ -620,7 +744,8 @@ function offerForm(root) {
     card(4, 'Where should we post it?', 'The marketing team makes the final choice of channels and timing.',
       F({ k: 'channels', l: 'Channels', t: 'multi', o: CHANNELS, req: true }),
       h('div', { class: 'grid g2' }, F({ k: 'handles', l: 'Accounts to tag', t: 'text', max: 200, ph: '@yourstore' }), F({ k: 'ctaUrl', l: 'Link for the post (optional)', t: 'url', max: 300, ph: 'https://' }))),
-    card(5, 'Who do we contact about it?', 'Filled in from your store page. Change it if someone else looks after this offer.',
+    card(5, 'Your lease', 'One quick question so the right support is planned for your store.', mcField(f, chg, reg, true)),
+    card(6, 'Who do we contact about it?', 'Filled in from your store page. Change it if someone else looks after this offer.',
       h('div', { class: 'grid g3' }, F({ k: 'ownerName', l: 'Name', t: 'text', req: true, max: 120 }), F({ k: 'ownerMobile', l: 'Mobile', t: 'tel', req: true, max: 40 }), F({ k: 'ownerEmail', l: 'Email', t: 'email', req: true, max: 160 }))));
 
   const rights = h('input', { type: 'checkbox', checked: O.rights, onchange: e => { O.rights = e.target.checked; } });
@@ -658,7 +783,7 @@ async function requestsView(root) {
   S.reqs.forEach(r => {
     const open = R.open === r.ref;
     const card = h('div', { class: 'card' }, h('div', { class: 'row', style: 'cursor:pointer', tabindex: '0', role: 'button', 'aria-expanded': String(open), onkeydown: e => { if (e.key === 'Enter') { R.open = open ? null : r.ref; render(); } }, onclick: () => { R.open = open ? null : r.ref; render(); } },
-      h('div', { class: 'sp1' }, h('b', null, r.subject), h('div', { class: 'small mute' }, _(r.type) + ' · ' + r.ref + ' · ' + fmtD(r.created, lang))), r.urgency !== 'Normal' ? h('span', { class: 'badge bad' }, _(r.urgency)) : null, badge(r.status)));
+      h('div', { class: 'sp1' }, h('b', null, r.subject), h('div', { class: 'small mute' }, _(r.type) + ' · ' + r.ref + ' · ' + fmtD(r.created, lang))), r.urgency !== 'Normal' ? h('span', { class: 'badge bad' }, _(r.urgency)) : null, badge(r.status)), reqTimeline(r.status));
     if (open) {
       const box = h('textarea', { rows: 3, maxlength: 1000, placeholder: _('Write a message…'), 'aria-label': _('Your message') }); const send = h('button', { class: 'btn sm', type: 'button' }, _('Send'));
       send.onclick = () => busy(send, async () => { S.reqs = (await api('request_reply', { ref: r.ref, text: box.value })).requests; toast(_('Sent.')); render(); });
@@ -667,6 +792,11 @@ async function requestsView(root) {
     }
     root.appendChild(card);
   });
+}
+function reqTimeline(status) {
+  const at = { 'New': 1, 'In progress': 1, 'Waiting on tenant': 1, 'Resolved': 3 }[status];
+  if (at == null) return null;
+  return h('ol', { class: 'tl' }, ['Received', 'In progress', 'Done'].map((x, i) => h('li', { class: i < at ? 'done' : i === at ? 'cur' : '' }, h('i', null, i < at ? '✓' : String(i + 1)), h('span', null, _(x)))));
 }
 function requestForm(root) {
   const d = R.draft, reg = {};
@@ -682,10 +812,13 @@ function requestForm(root) {
     const r = await api('request_create', Object.assign({ key: uid(), files: R.file ? [stripFile(R.file)] : [] }, d));
     S.reqs = r.requests; R = { open: r.ref, creating: false, draft: { type: 'Marketing question', urgency: 'Normal', subject: '', details: '', location: '' }, file: null }; S.me = await api('me'); celebrate(); toast(_('Sent! We emailed you a confirmation.')); render();
   }, note);
-  const typeField = fld(d, { k: 'type', l: 'What do you need?', t: 'types', o: REQ_TYPES }, k => { hint.textContent = _(REQ_HINT[d.type]); }, reg);
+  const self = h('div', { class: 'note', style: 'margin:0 0 12px' }, h('span', null, _('You can change this yourself. Edit your store page and it goes live straight away.') + ' '), h('button', { class: 'btn sm', type: 'button', onclick: () => { R.creating = false; S.tab = 'store'; render(); } }, _('Edit my store page')));
+  const syncSelf = () => { self.hidden = d.type !== 'Correct my store page'; };
+  syncSelf();
+  const typeField = fld(d, { k: 'type', l: 'What do you need?', t: 'types', o: REQ_TYPES }, k => { hint.textContent = _(REQ_HINT[d.type]); syncSelf(); }, reg);
   root.appendChild(h('div', { class: 'card', style: 'max-width:720px' }, h('h2', null, _('New request')),
     h('div', { class: 'note' }, _('This goes to the marketing team. For leasing, maintenance or operations, please contact the mall management office.')),
-    typeField, hint,
+    typeField, hint, self,
     fld(d, { k: 'urgency', l: 'How soon?', t: 'select', o: ['Normal', 'Urgent'], h: 'Choose Urgent only if it affects something going live in the next few days.' }, null, reg),
     fld(d, { k: 'subject', l: 'Subject', t: 'text', req: true, max: 120 }, null, reg), fld(d, { k: 'details', l: 'Tell us what you need', t: 'area', req: true, max: 2000, rows: 5 }, null, reg), fld(d, { k: 'location', l: 'Which offer or page, if relevant', t: 'text', max: 80, ph: 'e.g. my store page, or the cushions offer' }, null, reg),
     h('div', { class: 'f' }, h('span', { class: 'l' }, _('A picture or document (optional)')), h('label', { for: 'rf', class: 'btn sm g' }, _('Attach')), fileIn, ' ', fname),
